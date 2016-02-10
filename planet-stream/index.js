@@ -3,8 +3,10 @@
 
 // load environment variables
 require('dotenv').config();
+console.log(process.env);
 
-var planetStream = require('planet-stream')({
+// Start planet-stream
+var diffs = require('planet-stream')({
   verbose: process.env.DEBUG || false,
   limit: process.env.LIMIT || 25,
   host: process.env.REDIS_PORT_6379_TCP_ADDR || process.env.REDIS_HOST || '127.0.0.1',
@@ -15,9 +17,6 @@ var kinesis = require('./lib/kinesis.js');
 var R = require('ramda');
 
 var tracked = ['#missingmaps'];
-
-// start planet-stream
-var diffs = planetStream();
 
 // parse comments into hashtag list
 function getHashtags (str) {
@@ -47,17 +46,21 @@ diffs.map(JSON.parse)
 // add a complete record to kinesis
 .onValue(function (obj) {
   var data = JSON.stringify(obj);
-  if (obj.metadata) {
-    var dataParams = {
-      Data: data,
-      PartitionKey: obj.metadata.id,
-      StreamName: process.env.STREAM_NAME
-    };
-    kinesis.kin.putRecord(dataParams, function (err, data) {
-      if (err) console.error(err);
-      else console.log(data);
-    });
+  if (process.env.NO_KINESIS) {
+    console.log(data);
   } else {
-    console.log('No metadata for ' + obj);
+    if (obj.metadata) {
+      var dataParams = {
+        Data: data,
+        PartitionKey: obj.metadata.id,
+        StreamName: process.env.STREAM_NAME
+      };
+      kinesis.kin.putRecord(dataParams, function (err, data) {
+        if (err) console.error(err);
+        else console.log(data);
+      });
+    } else {
+      console.log('No metadata for ' + obj);
+    }
   }
 });
