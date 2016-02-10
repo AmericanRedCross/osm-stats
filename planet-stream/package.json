@@ -1,0 +1,23 @@
+{
+  "name": "planet-stream-kinesis",
+  "version": "0.0.1",
+  "description": "An instance of planet-stream connected to kinesis",
+  "main": "index.js",
+  "scripts": {
+    "test": "npm run lint",
+    "lint": "eslint index.js lib/*"
+  },
+  "author": "",
+  "license": "GPL-3.0",
+  "dependencies": {
+    "aws-sdk": "^2.2.33",
+    "bluebird": "^3.2.2",
+    "dotenv": "^2.0.0",
+    "planet-stream": "^0.2.0",
+    "ramda": "^0.19.1",
+    "shortid": "^2.2.4"
+  },
+  "devDependencies": {
+    "babel-eslint": "^4.1.8"
+  }
+}

@@ -1,0 +1,8 @@
+redis:
+  image: redis
+  ports:
+    - '6379'
+stream:
+  build: ./planet-stream
+  links:
+    - redis
