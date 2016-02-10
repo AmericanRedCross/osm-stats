@@ -1,10 +1,6 @@
 // OSM Planet Stream service
 // Mostly from https://github.com/developmentseed/planet-stream/tree/master/examples/kinesis
 
-// load environment variables
-require('dotenv').config();
-console.log(process.env);
-
 // Start planet-stream
 var diffs = require('planet-stream')({
   verbose: process.env.DEBUG || false,

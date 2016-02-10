@@ -4,5 +4,11 @@ redis:
     - '6379'
 stream:
   build: ./planet-stream
+  env_file: .env
   links:
     - redis
+api:
+  build: ./osm-stats-api
+  ports:
+    - "80:3000"
+  env_file: .env
