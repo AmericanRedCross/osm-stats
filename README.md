@@ -24,4 +24,6 @@ Call the deployment script with a name used to identify all the AWS services cre
 $ ./osm-stats-deploy.py --name osmstats-mm
 ```
 
-When completed the script will print a series of environment variables and also write them to an environment file called .env.
+When completed the script will print a series of environment variables and also write them to an environment file called .env. Make note of the EC2_URL variable. To complete the installation call the command below
+
+    $ fab -i osstats-mm.pem -H ec2-user@$EC2_URL
