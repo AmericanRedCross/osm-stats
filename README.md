@@ -12,7 +12,7 @@ $ aws configure
 $ npm install -g knex
 
 # call with help for list of parameters
-$ ./osmstats-deploy.py -h
+$ ./osm-stats-deploy.py -h
 ```
 
 ## Deployment
@@ -20,7 +20,7 @@ $ ./osmstats-deploy.py -h
 Call the deployment script with a name used to identify all the AWS services created.
 
 ```
-$ ./osmstats-deploy.py --name osmstats-mm
+$ ./osm-stats-deploy.py --name osmstats-mm
 ```
 
 When completed the script will print a series of environment variables and also write them to an environment file called "name.env"
