@@ -11,6 +11,7 @@ var diffs = require('planet-stream')({
 
 var kinesis = require('./lib/kinesis.js');
 var R = require('ramda');
+var toGeojson = require('./lib/toGeojson.js');
 
 var tracked = ['#missingmaps'];
 
@@ -32,6 +33,9 @@ function getHashtags (str) {
 // filter data for hashtags
 diffs.map(JSON.parse)
 .filter(function (data) {
+  if (process.env.PS_OUTPUT_DEBUG) {
+    return true;
+  }
   if (!data.metadata || !data.metadata.comment) {
     return false;
   }
@@ -43,8 +47,9 @@ diffs.map(JSON.parse)
 // add a complete record to kinesis
 .onValue(function (obj) {
   var data = JSON.stringify(obj);
-  if (process.env.NO_KINESIS) {
-    console.log(data);
+  var geo = toGeojson(obj.elements); 
+  if (process.env.PS_OUTPUT_DEBUG) {
+    console.log(JSON.stringify(geo));
   } else {
     if (obj.metadata) {
       var dataParams = {
