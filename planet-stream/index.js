@@ -35,6 +35,7 @@ diffs.map(JSON.parse)
   if (!data.metadata || !data.metadata.comment) {
     return false;
   }
+  data.metadata.comment = R.toLower(data.metadata.comment);
   var hashtags = R.map(R.toLower, getHashtags(data.metadata.comment));
   var intersection = R.intersection(hashtags, tracked);
   return intersection.length > 0;
