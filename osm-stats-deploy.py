@@ -216,8 +216,8 @@ if __name__ == "__main__":
     env.append('EC2_URL=%s' % ec2.public_dns_name)
     host_string = 'ec2-user@%s' %ec2.public_dns_name
 
-    with settings(host_string=host_string, key_filename=args.name + '.pem'):
-        deploy()
+    #with settings(host_string=host_string, key_filename=args.name + '.pem'):
+    #    deploy()
 
     # docker compose up
     print '%s: Completed deployment of %s' % (timestamp(), args.name)
