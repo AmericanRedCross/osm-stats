@@ -9,7 +9,6 @@ var redis_port = process.env.REDIS_PORT_6379_TCP_PORT || process.env.REDIS_PORT 
 var forgettable_host = process.env.FORGETTABLE_PORT_8080_TCP_ADDR || '127.0.0.1'
 var forgettable_port = process.env.FORGETTABLE_PORT_8080_TCP_PORT || 8080
 
-
 var kinesis = require('./lib/kinesis.js');
 var R = require('ramda');
 var Redis = require('ioredis');
