@@ -22,7 +22,7 @@ if __name__ == "__main__":
     parser0.add_argument('--ltimeout', help='Timeout (seconds) of Lambda function', default=10)
     parser0.add_argument('--update', help='Update with latest code', default=False)
     parser0.add_argument('--dbclass', help='The Amazon instance class for the RDS database', default='db.t2.medium')
-    parser0.add_argument('--password', help='The password to use for database', default='t3sting9huy')
+    parser0.add_argument('--password', help='The password to use for database', required=True)  # default='t3sting9huy')
 
     args = parser0.parse_args()
     print '%s: Starting deployment of %s' % (timestamp(), args.name)
