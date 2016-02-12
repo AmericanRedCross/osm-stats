@@ -4,6 +4,8 @@ var shortid = require('shortid');
 
 var AWS = require('aws-sdk');
 AWS.config.region = process.env.AWS_REGION;
+AWS.config.accessKeyId = process.env.AWS_ACCESS_KEY_ID;
+AWS.config.secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
 var kin = new AWS.Kinesis();
 var pkinesis = Promise.promisifyAll(kin);
 

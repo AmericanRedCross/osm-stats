@@ -1,3 +1,16 @@
+KINESIS_STREAM=osmstats-test
+LAMBDA_FUNCTION=osmstats-test-worker
+DATABASE_URL=postgres://osmstatstest:t3sting9huy@osmstats-test.cb4xylogqcpx.us-east-1.rds.amazonaws.com:5432/osmstatstest
+ALL_HASHTAGS=true
+SIMULATION=true
+AWS_REGION=us-east-1
+AWS_ACCESS_KEY_ID=AKIAJWIMCCWCTZMU7HJQ
+AWS_SECRET_ACCESS_KEY=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
+[ec2-user@ip-172-31-40-227 ~]$ cat planet-stream/index.js | pbcopy
+-bash: pbcopy: command not found
+[ec2-user@ip-172-31-40-227 ~]$ cat planet-stream/index.js | pbcopy
+-bash: pbcopy: command not found
+[ec2-user@ip-172-31-40-227 ~]$ cat planet-stream/index.js 
 // OSM Planet Stream service
 // Mostly from https://github.com/developmentseed/planet-stream/tree/master/examples/kinesis
 
@@ -48,7 +61,7 @@ function addToKinesis(obj) {
     if (obj.metadata) {
       var dataParams = {
         Data: data,
-        PartitionKey: obj.metadata.id,
+        PartitionKey: obj.metadata.id.toString(),
         StreamName: process.env.KINESIS_STREAM
       };
       kinesis.kin.putRecord(dataParams, function (err, data) {
