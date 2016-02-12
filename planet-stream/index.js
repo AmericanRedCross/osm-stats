@@ -70,7 +70,7 @@ if (process.env.SIMULATION) {
   setInterval(function () {
     var changeset = simulation.randomChangeset();
     addToKinesis(changeset);
-  }, 10000)
+  }, 1000)
 
 } else {
 
