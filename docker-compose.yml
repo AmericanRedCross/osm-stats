@@ -1,0 +1,24 @@
+redis:
+  image: redis
+  ports:
+    - '6379'
+stream:
+  build: ./planet-stream
+  env_file: .env
+  links:
+    - redis
+    - forgettable
+api:
+  build: ./osm-stats-api
+  links:
+    - redis
+    - forgettable
+  ports:
+    - 80:3000
+  env_file: .env
+forgettable:
+  build: ./forgettable
+  ports:
+    - 8080:8080
+  links:
+    - redis
