@@ -13,9 +13,11 @@
     "aws-sdk": "^2.2.33",
     "bluebird": "^3.2.2",
     "dotenv": "^2.0.0",
+    "ioredis": "^1.15.0",
     "planet-stream": "^0.2.0",
     "ramda": "^0.19.1",
-    "shortid": "^2.2.4"
+    "shortid": "^2.2.4",
+    "turf-featurecollection": "^1.0.1"
   },
   "devDependencies": {
     "babel-eslint": "^4.1.8"
