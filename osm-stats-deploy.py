@@ -5,7 +5,6 @@ import sys
 import argparse
 import boto3
 import subprocess
-from shutil import copyfile
 from boto3utils import timestamp, create_stream, create_function, create_database, create_ec2
 from fabric.api import settings
 import fabfile
@@ -55,10 +54,14 @@ if __name__ == "__main__":
         os.chdir('../../../../')
 
     # set up environment variables
+    session = boto3._get_default_session()._session
     env = [
         'KINESIS_STREAM=%s' % args.name,
         'LAMBDA_FUNCTION=%s' % args.name,
-        'DATABASE_URL=%s' % db['URL']
+        'DATABASE_URL=%s' % db['URL'],
+        'AWS_REGION=%s' % session.get_config_variable('region'),
+        'AWS_ACCESS_KEY_ID=%s' % session.get_credentials().access_key,
+        'AWS_SECRET_ACCESS_KEY=%s' % session.get_credentials().secret_key,
     ]
     # create environment variable file
     with open('%s.env' % args.name, 'w') as f:
@@ -86,16 +89,19 @@ if __name__ == "__main__":
     # start up EC2 instance
     ec2 = create_ec2(args.name)
     env.append('EC2_URL=%s' % ec2.public_dns_name)
+    with open('%s.env' % args.name, 'a') as f:
+        f.write(env[-1])
     host_string = 'ec2-user@%s:22' % ec2.public_dns_name
 
     # configure EC2
     try:
-        print '%s: Configuring EC2' % timestamp()
-        sys.stdout = open('%s.fabric.log' % ec2.public_dns_name, 'w')
-        with settings(host_string=host_string, key_filename=args.name + '.pem'):
+        print '%s: Deploying to EC2' % timestamp()
+        sys.stdout = open('%s.fabric.log' % args.name, 'w')
+        with settings(host_string=host_string, key_filename=args.name + '.pem', connection_attempts=3):
             fabfile.setup_host()
             fabfile.copy_files()
-            fabfile.deploy()
+        # hack to use new session so user guaranteed part of docker group
+        subprocess.call(['fab', 'deploy', '-i%s.pem' % args.name, '-H %s' % host_string])
     finally:
         sys.stdout.close()
         sys.stdout = sys.__stdout__
