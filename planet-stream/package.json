@@ -16,6 +16,7 @@
     "ioredis": "^1.15.0",
     "planet-stream": "^0.2.0",
     "ramda": "^0.19.1",
+    "request-promise": "^2.0.0",
     "shortid": "^2.2.4",
     "turf-featurecollection": "^1.0.1"
   },

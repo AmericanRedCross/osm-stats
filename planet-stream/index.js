@@ -1,25 +1,20 @@
-KINESIS_STREAM=osmstats-test
-LAMBDA_FUNCTION=osmstats-test-worker
-DATABASE_URL=postgres://osmstatstest:t3sting9huy@osmstats-test.cb4xylogqcpx.us-east-1.rds.amazonaws.com:5432/osmstatstest
-ALL_HASHTAGS=true
-SIMULATION=true
-AWS_REGION=us-east-1
-AWS_ACCESS_KEY_ID=AKIAJWIMCCWCTZMU7HJQ
-AWS_SECRET_ACCESS_KEY=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
-[ec2-user@ip-172-31-40-227 ~]$ cat planet-stream/index.js | pbcopy
--bash: pbcopy: command not found
-[ec2-user@ip-172-31-40-227 ~]$ cat planet-stream/index.js | pbcopy
--bash: pbcopy: command not found
-[ec2-user@ip-172-31-40-227 ~]$ cat planet-stream/index.js 
 // OSM Planet Stream service
 // Mostly from https://github.com/developmentseed/planet-stream/tree/master/examples/kinesis
+
+console.log(process.env);
 
 var redis_host = process.env.REDIS_PORT_6379_TCP_ADDR || process.env.REDIS_HOST || '127.0.0.1'
 var redis_port = process.env.REDIS_PORT_6379_TCP_PORT || process.env.REDIS_PORT || 6379
 
+var forgettable_host = process.env.FORGETTABLE_PORT_8080_TCP_ADDR || '127.0.0.1'
+var forgettable_port = process.env.FORGETTABLE_PORT_8080_TCP_PORT || 8080
+
+
 var kinesis = require('./lib/kinesis.js');
 var R = require('ramda');
 var Redis = require('ioredis');
+var request = require('request-promise');
+
 redis = new Redis({
   host: redis_host,
   port: redis_port
@@ -53,8 +48,20 @@ function addToKinesis(obj) {
     hashtags.forEach(function (hashtag) {
       redis.lpush('osmstats::map::' + hashtag, JSON.stringify(geo));
       redis.ltrim('osmstats::map::' + hashtag, 0, 100)
+
+      // Add to forgettable
+      if (R.match(/missingmaps/, R.toLower(hashtag)).length === 0) {
+        request('http://' + forgettable_host + ':' + forgettable_port +
+                     '/incr?distribution=hashtags&field=' + R.slice(1, Infinity, hashtag) + '&N=10').then(function (result) {
+                     console.log('Added ', hashtag);
+        }).catch(function (error) {
+          console.error('error', error)
+        })
+      }
     });
   }
+
+
   if (process.env.PS_OUTPUT_DEBUG) {
     console.log(JSON.stringify(geo));
   } else {
