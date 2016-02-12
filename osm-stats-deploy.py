@@ -8,6 +8,7 @@ import time
 import subprocess
 import json
 import datetime
+import re
 from fabric.api import settings
 from fabfile import deploy
 
@@ -25,14 +26,12 @@ def create_stream(sname):
     """ Create kinesis stream, and wait until it is active """
     kinesis = boto3.client('kinesis')
     if sname not in [f for f in kinesis.list_streams()['StreamNames']]:
-        sys.stdout.write('%s: Creating Kinesis stream %s' % (timestamp(), sname))
+        print '%s: Creating Kinesis stream %s' % (timestamp(), sname)
         kinesis.create_stream(StreamName=sname, ShardCount=1)
     else:
-        sys.stdout.write('%s: Kinesis stream %s exists' % (timestamp(), sname))
-    sys.stdout.flush()
+        print '%s: Kinesis stream %s exists' % (timestamp(), sname)
     while kinesis.describe_stream(StreamName=sname)['StreamDescription']['StreamStatus'] == 'CREATING':
         time.sleep(2)
-    sys.stdout.write('\n')
     return kinesis.describe_stream(StreamName=sname)['StreamDescription']
 
 
@@ -92,14 +91,15 @@ def create_function(lname, zfile, rolearn, lsize=512, timeout=10, update=False):
 def create_database(name, password, dbclass='db.t2.medium', storage=5, migrate=True):
     """ Create an RDS database and seed it """
     rds = boto3.client('rds')
+    dbname = re.sub('[^0-9a-zA-Z]+', '', name)
 
     # TODO - check if DB already exists
     dbs = [db['DBInstanceIdentifier'] for db in rds.describe_db_instances()['DBInstances']]
     if name not in dbs:
         print '%s: Creating RDS database %s' % (timestamp(), name)
         db = rds.create_db_instance(
-            DBName=name, DBInstanceIdentifier=name, DBInstanceClass=dbclass, Engine='postgres',
-            MasterUsername=name, MasterUserPassword=password, VpcSecurityGroupIds=['sg-5e742627'],
+            DBName=dbname, DBInstanceIdentifier=name, DBInstanceClass=dbclass, Engine='postgres',
+            MasterUsername=dbname, MasterUserPassword=password, VpcSecurityGroupIds=['sg-5e742627'],
             AllocatedStorage=storage
         )['DBInstance']
         waiter = rds.get_waiter('db_instance_available')
@@ -108,7 +108,7 @@ def create_database(name, password, dbclass='db.t2.medium', storage=5, migrate=T
         print '%s: RDS Database %s already exists' % (timestamp(), name)
     db = rds.describe_db_instances(DBInstanceIdentifier=name)['DBInstances'][0]
     dburl = 'postgres://%s:%s@%s:%s/%s' % \
-            (args.name, args.password, db['Endpoint']['Address'], db['Endpoint']['Port'], args.name)
+            (dbname, args.password, db['Endpoint']['Address'], db['Endpoint']['Port'], dbname)
     os.environ['DATABASE_URL'] = dburl
     db['URL'] = dburl
     if migrate:
@@ -134,8 +134,10 @@ def create_ec2(name, instancetype='t2.medium'):
         # the instance did not exist
         keyname = name+'_keypair'
         # if it already exists, delete and issue a new one
-        if len(ec2.describe_key_pairs(KeyNames=[keyname])) > 0:
+        try:
             ec2.delete_key_pair(KeyName=keyname)
+        except Exception, e:
+            pass
         # create a keypair
         key_pair = ec2.create_key_pair(KeyName=keyname)
         pfile = name + '.pem'
@@ -214,7 +216,7 @@ if __name__ == "__main__":
     # start up EC2 instance
     ec2 = create_ec2(args.name)
     env.append('EC2_URL=%s' % ec2.public_dns_name)
-    host_string = 'ec2-user@%s' %ec2.public_dns_name
+    host_string = 'ec2-user@%s' % ec2.public_dns_name
 
     #with settings(host_string=host_string, key_filename=args.name + '.pem'):
     #    deploy()
