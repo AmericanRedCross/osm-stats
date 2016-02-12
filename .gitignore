@@ -1,6 +1,6 @@
-.pem
+*.pem
 *~
-.pyc
+*.pyc
 .env
 osm-stats-workers
 osm-stats-workers.zip
