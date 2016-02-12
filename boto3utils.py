@@ -119,7 +119,7 @@ def create_ec2(name, instancetype='t2.medium', AMI='ami-60b6c60a'):
             {'Name': 'instance-state-name', 'Values': ['running', 'pending']}
         ])
         print '%s: EC2 instance %s exists' % (timestamp(), name)
-        iid = instances['Reservations'][0]['Instances'][0]['InstanceId']
+        inst = ec2resource.Instance(instances['Reservations'][0]['Instances'][0]['InstanceId'])
     except Exception:
         # the instance did not exist
         keyname = name+'_keypair'
@@ -143,6 +143,9 @@ def create_ec2(name, instancetype='t2.medium', AMI='ami-60b6c60a'):
         iid = instances[0].instance_id
         # set name
         ec2.create_tags(Resources=[iid], Tags=[{'Key': 'Name', 'Value': name}])
-    inst = ec2resource.Instance(iid)
-    inst.wait_until_running()
+        inst = ec2resource.Instance(iid)
+        inst.wait_until_running()
+        inst.reload()
+        # give it additional time for SSH to fully start
+        time.sleep(60)
     return inst
