@@ -101,7 +101,7 @@ if __name__ == "__main__":
             fabfile.setup_host()
             fabfile.copy_files()
         # hack to use new session so user guaranteed part of docker group
-        subprocess.call(['fab', 'deploy', '-i%s.pem' % args.name, '-H %s' % host_string])
+        subprocess.call(['fab', 'deploy', '-i%s.pem' % args.name, '-H %s' % host_string], stdout=sys.stdout)
     finally:
         sys.stdout.close()
         sys.stdout = sys.__stdout__
