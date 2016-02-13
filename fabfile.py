@@ -16,6 +16,7 @@ def copy_files():
     put('docker-compose.yml', '~/', use_sudo=True)
     put('osm-stats-api', '~/', use_sudo=True)
     put('planet-stream', '~/', use_sudo=True)
+    put('forgettable', '~/', use_sudo=True)
 
 
 def deploy():
