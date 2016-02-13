@@ -108,6 +108,28 @@ def create_database(name, password, dbclass='db.t2.medium', storage=5):
     return db
 
 
+def create_security_group(name):
+    """ Create security group or retrieve existing and allow SSH and HTTP """
+    ec2 = boto3.client('ec2')
+    ec2r = boto3.resource('ec2')
+    try:
+        gid = ec2.describe_security_groups(GroupNames=[name])['SecurityGroups'][0]['GroupId']
+    except:
+        # security group does not exist
+        print '%s: Creating security group %s' % name
+        gid = ec2.create_security_group(GroupName=name, Description=name)['GroupId']
+    group = ec2r.SecurityGroup(gid)
+    # add SSH and HTTP inbound rules
+    ec2.authorize_security_group_ingress(
+        GroupId=group.group_id,
+        IpPermissions=[
+            {'IpProtocol': 'tcp', 'FromPort': 80, 'ToPort': 80, 'IpRanges': [{'CidrIp': '0.0.0.0/0'}]},
+            {'IpProtocol': 'tcp', 'FromPort': 22, 'ToPort': 22, 'IpRanges': [{'CidrIp': '0.0.0.0/0'}]}
+        ]
+    )
+    return group
+
+
 def create_ec2(name, instancetype='t2.medium', AMI='ami-60b6c60a'):
     """ Create an EC2 instance of provided type and AMI """
     ec2 = boto3.client('ec2')
@@ -118,8 +140,8 @@ def create_ec2(name, instancetype='t2.medium', AMI='ami-60b6c60a'):
             {'Name': 'tag:Name', 'Values': [name]},
             {'Name': 'instance-state-name', 'Values': ['running', 'pending']}
         ])
-        print '%s: EC2 instance %s exists' % (timestamp(), name)
         inst = ec2resource.Instance(instances['Reservations'][0]['Instances'][0]['InstanceId'])
+        print '%s: EC2 instance %s exists' % (timestamp(), name)
     except Exception:
         # the instance did not exist
         keyname = name+'_keypair'
@@ -135,9 +157,12 @@ def create_ec2(name, instancetype='t2.medium', AMI='ami-60b6c60a'):
             f.write(key_pair['KeyMaterial'])
         os.chmod(pfile, 0600)
 
+        # create a security group
+        group = create_security_group(name)
+
         print '%s: Creating EC2 instance %s' % (timestamp(), name)
         instances = ec2resource.create_instances(
-            ImageId=AMI, MinCount=1, MaxCount=1, KeyName=keyname, SecurityGroups=['launch-wizard-5'],
+            ImageId=AMI, MinCount=1, MaxCount=1, KeyName=keyname, SecurityGroups=[group.group_name],
             InstanceType=instancetype, Monitoring={'Enabled': True}
         )
         iid = instances[0].instance_id
