@@ -116,6 +116,6 @@ if (process.env.SIMULATION) {
     return intersection.length > 0;
   })
   // add a complete record to kinesis
-  .onValue();
+  .onValue(addToKinesis);
 
 }
