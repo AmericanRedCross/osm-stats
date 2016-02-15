@@ -1,11 +1,15 @@
 # OSM Stats
 
-The deployment script will deploy all services needed to run OSM Stats.  This includes:
-    - EC2 instance running planet-stream and osm-stats-api
-    - Kinesis stream for planet-stream output
-    - Lambda function for osm-stats-worker, ingesting data from Kinesis stream
-    - RDS database for osm-stats-worker output
-    - Associated roles and security groups
+<img width="910" alt="osm-stats" src="https://cloud.githubusercontent.com/assets/719357/13054401/b85f72ce-d3d7-11e5-939a-537fbbfa21bc.png">
+
+The deployment script will deploy all services needed to run OSM Stats.  
+
+This includes:
+- EC2 instance running `planet-stream`, `osm-stats-api` and a trending hashtags processor
+- Kinesis stream for `planet-stream` output
+- Lambda function for `osm-stats-worker`, ingesting data from Kinesis stream
+- RDS database for `osm-stats-worker` output
+- Associated roles and security groups
 
 The user running the script should have credentials and a default AWS region configured by using aws configure
 
