@@ -8,3 +8,5 @@ OSM Stat is made up of several repositories.
     - [planet-stream](https://github.com/developmentseed/planet-stream): for streaming minute by minute diffs of OSM changesets
     - [osm-stats-worker](https://github.com/AmericanRedCross/osm-stats-workers): for calculating metrics from changesets
     - [osm-stats-api](https://github.com/AmericanRedCross/osm-stats-api): for serving user metrics
+    - [osm-stats-users](): user pages
+    - [osm-stats-leaderboard](): leaderboard pages
