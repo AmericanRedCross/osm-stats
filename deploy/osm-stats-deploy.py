@@ -30,10 +30,10 @@ if __name__ == "__main__":
     # clone/ workers repo and create zip
     repo = 'osm-stats-workers'
     repo_url = 'https://github.com/AmericanRedCross/osm-stats-workers.git'
-    FNULL = open(os.devnull, 'w')
+    logfile = open('%_deploy.log' % args.name, 'w')
     if not os.path.exists(repo):
         print '%s: Cloning %s repository' % (timestamp(), repo)
-        subprocess.call(['git', 'clone', '-bgh-pages', repo_url], stdout=FNULL, stderr=FNULL)
+        subprocess.call(['git', 'clone', '-bgh-pages', repo_url], stdout=logfile)
     zfile = 'osm-stats-workers/osm-stats-workers.zip'
 
     # create stream and RDS database
@@ -45,19 +45,18 @@ if __name__ == "__main__":
     if migrate:
         # db migration - this is ugly way of doing this
         print '%s: Migrating database' % timestamp()
-        FNULL = open(os.devnull, 'w')
         # unzip migration files
-        subprocess.call(['unzip', '-o', zfile, '-d', repo], stdout=FNULL)
+        subprocess.call(['unzip', '-o', zfile, '-d', repo], stdout=logfile)
         os.chdir('osm-stats-workers/src/db/migrations')
-        subprocess.call(['knex', 'migrate:latest'], stdout=FNULL)
-        subprocess.call(['knex', 'seed:run'], stdout=FNULL)
+        subprocess.call(['knex', 'migrate:latest'], stdout=logfile)
+        #subprocess.call(['knex', 'seed:run'], stdout=logfile)
         os.chdir('../../../../')
 
     # set up environment variables
     session = boto3._get_default_session()._session
     env = [
+        'DEPLOY_NAME=%s' % args.name,
         'KINESIS_STREAM=%s' % args.name,
-        'LAMBDA_FUNCTION=%s' % args.name,
         'DATABASE_URL=%s' % db['URL'],
         'AWS_REGION=%s' % session.get_config_variable('region'),
         'AWS_ACCESS_KEY_ID=%s' % session.get_credentials().access_key,
@@ -71,7 +70,7 @@ if __name__ == "__main__":
         os.remove('.env')
     os.symlink('%s.env' % args.name, '.env')
     # add .env file to zip
-    subprocess.call(['zip', '%s/%s.zip' % (repo, repo), '-xi', '.env'], stdout=FNULL)
+    subprocess.call(['zip', '%s/%s.zip' % (repo, repo), '-xi', '.env'], stdout=logfile)
 
     # create or update lambda function
     func = create_function(args.name, zfile, lsize=args.lsize, timeout=args.ltimeout, update=args.update)
@@ -96,15 +95,16 @@ if __name__ == "__main__":
     # configure EC2
     try:
         print '%s: Deploying to EC2' % timestamp()
-        sys.stdout = open('%s.fabric.log' % args.name, 'w')
+        sys.stdout = logfile
         with settings(host_string=host_string, key_filename=args.name + '.pem', connection_attempts=3):
             fabfile.setup_host()
             fabfile.copy_files()
         # hack to use new session so user guaranteed part of docker group
-        subprocess.call(['fab', 'deploy', '-i%s.pem' % args.name, '-H %s' % host_string], stdout=sys.stdout)
+        subprocess.call(['fab', 'deploy', '-i%s.pem' % args.name, '-H %s' % host_string], stdout=logfile)
     finally:
         sys.stdout.close()
         sys.stdout = sys.__stdout__
+    logfile.close()
 
     # docker compose up
     print '%s: Completed deployment of %s' % (timestamp(), args.name)
