@@ -40,6 +40,7 @@ function addToKinesis(obj) {
   var data = JSON.stringify(obj);
   var geo = toGeojson(obj.elements);
   geo.properties = obj.metadata;
+  console.log(obj.metadata);
 
   // Only add if there are features
   if (geo.features.length) {
@@ -52,7 +53,6 @@ function addToKinesis(obj) {
       if (R.match(/missingmaps/, R.toLower(hashtag)).length === 0) {
         request('http://' + forgettable_host + ':' + forgettable_port +
                      '/incr?distribution=hashtags&field=' + R.slice(1, Infinity, hashtag) + '&N=10').then(function (result) {
-                     console.log('Added ', hashtag);
         }).catch(function (error) {
           console.error('error', error)
         })
