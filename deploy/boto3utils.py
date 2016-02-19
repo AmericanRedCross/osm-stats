@@ -116,7 +116,7 @@ def create_security_group(name):
         gid = ec2.describe_security_groups(GroupNames=[name])['SecurityGroups'][0]['GroupId']
     except:
         # security group does not exist
-        print '%s: Creating security group %s' % name
+        print '%s: Creating security group %s' % (timestamp(), name)
         gid = ec2.create_security_group(GroupName=name, Description=name)['GroupId']
     group = ec2r.SecurityGroup(gid)
     # add SSH and HTTP inbound rules
@@ -130,11 +130,25 @@ def create_security_group(name):
     return group
 
 
+def get_ec2(name):
+    """ Retrieve matchine EC2 or return None """
+    ec2 = boto3.client('ec2')
+    ec2resource = boto3.resource('ec2')
+    try:
+        instances = ec2.describe_instances(Filters=[
+            {'Name': 'tag:Name', 'Values': [name]},
+            {'Name': 'instance-state-name', 'Values': ['running', 'pending']}
+        ])
+        inst = ec2resource.Instance(instances['Reservations'][0]['Instances'][0]['InstanceId'])
+        return inst
+    except Exception:
+        return None        
+
+
 def create_ec2(name, instancetype='t2.medium', AMI='ami-60b6c60a'):
     """ Create an EC2 instance of provided type and AMI """
     ec2 = boto3.client('ec2')
     ec2resource = boto3.resource('ec2')
-    # TODO - add security group
     try:
         instances = ec2.describe_instances(Filters=[
             {'Name': 'tag:Name', 'Values': [name]},
@@ -158,6 +172,7 @@ def create_ec2(name, instancetype='t2.medium', AMI='ami-60b6c60a'):
         os.chmod(pfile, 0600)
 
         # create a security group
+        # TODO - check if security group exists
         group = create_security_group(name)
 
         print '%s: Creating EC2 instance %s' % (timestamp(), name)

@@ -26,7 +26,7 @@ $ aws configure
 $ npm install -g knex
 
 # call with help for list of parameters
-$ ./osm-stats-deploy.py -h
+$ ./osmstats.py deploy -h
 
 ```
 
