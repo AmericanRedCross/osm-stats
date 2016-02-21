@@ -106,10 +106,10 @@ if __name__ == "__main__":
         # create stream and RDS database
         stream = create_stream(args.name)
         db = create_database(args.name, args.password, dbclass=args.dbclass)
+        os.environ['DATABASE_URL'] = db['URL']
         migrate_database(repo, logfile)
 
         # set up environment variables
-        os.environ['DATABASE_URL'] = db['URL']
         session = boto3._get_default_session()._session
         env = [
             'DEPLOY_NAME=%s' % args.name,
@@ -120,10 +120,11 @@ if __name__ == "__main__":
             'AWS_SECRET_ACCESS_KEY=%s' % session.get_credentials().secret_key,
         ]
         # create environment variable file
-        with open('%s.env' % name, 'w') as f:
+        with open('%s.env' % args.name, 'w') as f:
             [f.write(e + '\n') for e in env]
         add_env(args.name, repo, logfile)
         # create lambda function
+        zfile = '%s/%s.zip' % (repo, repo)
         func = create_function(args.name, zfile, lsize=args.lsize, timeout=args.ltimeout)
 
         # create mapping to kinesis stream
