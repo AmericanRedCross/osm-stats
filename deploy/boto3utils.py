@@ -27,9 +27,8 @@ def create_stream(sname):
     return kinesis.describe_stream(StreamName=sname)['StreamDescription']
 
 
-def create_role(name):
-    """ Create a role with an inline policy for accessing kinesis streams """
-    rolename = '%s_lambda_kinesis' % name
+def create_role(name, policy=None, instance_profile=False):
+    """ Create a role with an optional inline policy """
     iam = boto3.client('iam')
     policydoc = {
         "Version": "2012-10-17",
@@ -38,23 +37,36 @@ def create_role(name):
         ]
     }
     roles = [r['RoleName'] for r in iam.list_roles()['Roles']]
-    if rolename in roles:
-        print '%s: IAM role %s exists' % (timestamp(), rolename)
-        role = iam.get_role(RoleName=rolename)['Role']
+    if name in roles:
+        print '%s: IAM role %s exists' % (timestamp(), name)
+        role = iam.get_role(RoleName=name)['Role']
     else:
-        print '%s: Creating IAM role %s' % (timestamp(), rolename)
-        role = iam.create_role(RoleName=rolename, AssumeRolePolicyDocument=json.dumps(policydoc))['Role']
+        print '%s: Creating IAM role %s' % (timestamp(), name)
+        role = iam.create_role(RoleName=name, AssumeRolePolicyDocument=json.dumps(policydoc))['Role']
 
     # attach inline policy
-    parn = 'arn:aws:iam::aws:policy/service-role/AWSLambdaKinesisExecutionRole'
-    iam.attach_role_policy(RoleName=rolename, PolicyArn=parn)
-    return role
+    if policy is not None:
+        iam.attach_role_policy(RoleName=role['RoleName'], PolicyArn=policy)
+    # add role to an instance profile and return that
+    if instance_profile:
+        profiles = iam.list_instance_profiles()['InstanceProfiles']
+        for p in profiles:
+            if p['InstanceProfileName'] == name:
+                return p
+        profile = iam.create_instance_profile(InstanceProfileName=name)['InstanceProfile']
+        iam.add_role_to_instance_profile(InstanceProfileName=profile['InstanceProfileName'],
+                                         RoleName=role['RoleName'])
+        return profile
+    else:
+        return role
 
 
 def create_function(name, zfile, lsize=512, timeout=10, update=False):
     """ Create, or update if exists, lambda function """
     # create role for this function
-    role = create_role(name)
+    role = create_role(name + '_lambda-kinesis',
+                       policy='arn:aws:iam::aws:policy/service-role/AWSLambdaKinesisExecutionRole')
+
     l = boto3.client('lambda')
     with open(zfile, 'rb') as zipfile:
         funcs = l.list_functions()['Functions']
@@ -93,7 +105,7 @@ def create_database(name, password, dbclass='db.t2.medium', storage=5):
         print '%s: Creating RDS database %s' % (timestamp(), name)
         db = rds.create_db_instance(
             DBName=dbname, DBInstanceIdentifier=name, DBInstanceClass=dbclass, Engine='postgres',
-            MasterUsername=dbname, MasterUserPassword=password, VpcSecurityGroupIds=['sg-5e742627'],
+            MasterUsername=dbname, MasterUserPassword=password, # VpcSecurityGroupIds=['sg-5e742627'],
             AllocatedStorage=storage
         )['DBInstance']
         waiter = rds.get_waiter('db_instance_available')
@@ -142,7 +154,20 @@ def get_ec2(name):
         inst = ec2resource.Instance(instances['Reservations'][0]['Instances'][0]['InstanceId'])
         return inst
     except Exception:
-        return None        
+        return None      
+
+
+def get_or_create_security_group(name):
+    """ Get or create a security group of this name """
+    ec2 = boto3.client('ec2')
+    ec2resource = boto3.resource('ec2')
+    filts = [{'Name': 'group-name', 'Values': [name]}]
+    groups = ec2.describe_security_groups(Filters=filts)['SecurityGroups']
+    if len(groups) == 0:
+        group = create_security_group(name)
+    else:
+        group = ec2resource.SecurityGroup(groups[0]['GroupId'])   
+    return group   
 
 
 def create_ec2(name, instancetype='t2.medium', AMI='ami-60b6c60a'):
@@ -172,13 +197,18 @@ def create_ec2(name, instancetype='t2.medium', AMI='ami-60b6c60a'):
         os.chmod(pfile, 0600)
 
         # create a security group
-        # TODO - check if security group exists
-        group = create_security_group(name)
+        group = get_or_create_security_group('%s_ec2' % name)
+
+        # create role
+        role = create_role('%s_ec2' % name, instance_profile=True,
+                           policy='arn:aws:iam::aws:policy/CloudWatchFullAccess')
+        print 'role', role
 
         print '%s: Creating EC2 instance %s' % (timestamp(), name)
         instances = ec2resource.create_instances(
             ImageId=AMI, MinCount=1, MaxCount=1, KeyName=keyname, SecurityGroups=[group.group_name],
-            InstanceType=instancetype, Monitoring={'Enabled': True}
+            InstanceType=instancetype, Monitoring={'Enabled': True},
+            IamInstanceProfile={'Arn': role['Arn']}
         )
         iid = instances[0].instance_id
         # set name
