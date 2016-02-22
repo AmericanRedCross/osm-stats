@@ -148,9 +148,10 @@ if __name__ == "__main__":
         # update RDS security group to allow EC2 and lambda functions access
         ec2 = boto3.client('ec2')
         groups = ['%s_rds' % args.name, '%s_ec2' % args.name, '%s_lambda' % args.name]
-        gids = [g['GroupId'] for g in ec2.describe_security_groups(GroupNames=groups)['SecurityGroups']]
-        ec2.authorize_security_group_ingress(GroupId=gids[0], SourceSecurityGroupName=gids[1])
-        ec2.authorize_security_group_ingress(GroupId=gids[0], SourceSecurityGroupName=gids[2])
+        groups = [g for g in ec2.describe_security_groups(GroupNames=groups)['SecurityGroups']]
+        gid = groups[0]['GroupId']
+        ec2.authorize_security_group_ingress(GroupId=gid, SourceSecurityGroupName=groups[1]['GroupName'])
+        ec2.authorize_security_group_ingress(GroupId=gid, SourceSecurityGroupName=groups[2]['GroupName'])
 
         print '%s: Completed deployment of %s' % (timestamp(), args.name)
 

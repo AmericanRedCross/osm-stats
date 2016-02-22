@@ -112,6 +112,7 @@ def create_database(name, password, dbclass='db.t2.medium', storage=5):
         print '%s: Creating RDS database %s' % (timestamp(), name)
 
         my_ip = json.load(urlopen('https://api.ipify.org/?format=json'))['ip']
+        my_ip = '0.0.0.0'
         perms = [
             {'IpProtocol': 'tcp', 'FromPort': 5432, 'ToPort': 5432, 'IpRanges': [{'CidrIp': my_ip + '/32'}]},
         ]
