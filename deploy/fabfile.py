@@ -13,6 +13,9 @@ def setup_host():
 def copy_files():
     """ Copy Docker files to host """
     put('.env', '~/', use_sudo=True)
+    sudo("sed 's/^/export /g' .env > /etc/default/docker")
+    run("sed 's/^/export /g' .env >> /home/ec2-user/.bash_profile")
+    sudo('service docker restart')
     put('docker-compose.yml', '~/', use_sudo=True)
     put('osm-stats-api', '~/', use_sudo=True)
     put('planet-stream', '~/', use_sudo=True)
