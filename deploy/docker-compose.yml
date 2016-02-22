@@ -8,9 +8,9 @@ stream:
   links:
     - redis
     - forgettable
-  log_driver: awslogs
-  log_opt:
-    awslogs-group: "/aws/ec2/${DEPLOY_NAME}"
+  #log_driver: awslogs
+  #log_opt:
+  #  awslogs-group: "/aws/ec2/${DEPLOY_NAME}"
 api:
   build: ./osm-stats-api
   links:
@@ -19,15 +19,15 @@ api:
   ports:
     - 80:3000
   env_file: .env
-  log_driver: awslogs
-  log_opt:
-    awslogs-group: "/aws/ec2/${DEPLOY_NAME}"
+  #log_driver: awslogs
+  #log_opt:
+  #  awslogs-group: "/aws/ec2/${DEPLOY_NAME}"
 forgettable:
   build: ./forgettable
   ports:
     - 8080:8080
   links:
     - redis
-  log_driver: awslogs
-  log_opt:
-    awslogs-group: "/aws/ec2/${DEPLOY_NAME}"
+  #log_driver: awslogs
+  #log_opt:
+  #  awslogs-group: "/aws/ec2/${DEPLOY_NAME}"
