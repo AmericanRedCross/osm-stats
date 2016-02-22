@@ -59,7 +59,7 @@ def get_or_create_role(name, policies=None, instance_profile=False):
         profile = iam.create_instance_profile(InstanceProfileName=name)['InstanceProfile']
         iam.add_role_to_instance_profile(InstanceProfileName=profile['InstanceProfileName'],
                                          RoleName=role['RoleName'])
-         time.sleep(10)
+        time.sleep(10)
         return profile
     else:
         return role
