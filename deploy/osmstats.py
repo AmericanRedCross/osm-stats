@@ -6,7 +6,7 @@ import argparse
 import boto3
 import subprocess
 import shutil
-from boto3utils import timestamp, create_stream, create_function, create_database, get_ec2, create_ec2
+from boto3utils import timestamp, create_stream, create_function, create_database, create_ec2
 from fabric.api import settings
 import fabfile
 
@@ -14,12 +14,13 @@ import fabfile
     OSM Stats AWS deployment script
 '''
 
+
 def clone_workers_repo(logfile=None):
     """ Clone workers repository """
     if logfile is None:
         logfile = open(os.devnull, 'w')
     repo = 'osm-stats-workers'
-    print '%s: Cloning latest %s repository' % (timestamp(), repo)
+    print '%s: Fetching latest %s repository' % (timestamp(), repo)
     repo_url = 'https://github.com/AmericanRedCross/%s.git' % repo
     if os.path.exists(repo):
         shutil.rmtree(repo)
@@ -86,10 +87,10 @@ if __name__ == "__main__":
     parser0 = argparse.ArgumentParser(description='Deploy OSM Stats', formatter_class=dhf)
     subparser = parser0.add_subparsers(dest='command')
 
-    parser = subparser.add_parser('deploy', help='Deploy OSM Stats')
+    parser = subparser.add_parser('deploy', help='Deploy OSM Stats', formatter_class=dhf)
     parser.add_argument('--name', help='Base name for all AWS resources', default='osmstats')
     parser.add_argument('--lsize', help='Size (MB) of Lambda function', default=512)
-    parser.add_argument('--ltimeout', help='Timeout (seconds) of Lambda function', default=10)
+    parser.add_argument('--ltimeout', help='Timeout (seconds) of Lambda function', default=300)
     parser.add_argument('--dbclass', help='The Amazon instance class for the RDS database', default='db.t2.medium')
     parser.add_argument('--password', help='The password to use for database', required=True)  # default='t3sting9huy')
 
@@ -125,7 +126,7 @@ if __name__ == "__main__":
         add_env(args.name, repo, logfile)
         # create lambda function
         zfile = '%s/%s.zip' % (repo, repo)
-        func = create_function(args.name, zfile, lsize=args.lsize, timeout=args.ltimeout)
+        func = create_function(args.name, zfile, lsize=int(args.lsize), timeout=int(args.ltimeout))
 
         # create mapping to kinesis stream
         batchsz = 1     # for now, this must be one
@@ -137,12 +138,20 @@ if __name__ == "__main__":
             l.create_event_source_mapping(FunctionName=args.name, EventSourceArn=stream['StreamARN'],
                                           BatchSize=batchsz, StartingPosition='TRIM_HORIZON')
         # start up EC2 instance
-        ec2 = create_ec2(args.name)
-        env.append('EC2_URL=%s' % ec2.public_dns_name)
+        ec2_machine = create_ec2(args.name)
+        env.append('EC2_URL=%s' % ec2_machine.public_dns_name)
         with open('%s.env' % args.name, 'a') as f:
             f.write(env[-1])
-        host_string = 'ec2-user@%s:22' % ec2.public_dns_name
+        host_string = 'ec2-user@%s:22' % ec2_machine.public_dns_name
         deploy_to_ec2(args.name, host_string, logfile)
+
+        # update RDS security group to allow EC2 and lambda functions access
+        ec2 = boto3.client('ec2')
+        groups = ['%s_rds' % args.name, '%s_ec2' % args.name, '%s_lambda' % args.name]
+        gids = [g['GroupId'] for g in ec2.describe_security_groups(GroupNames=groups)['SecurityGroups']]
+        ec2.authorize_security_group_ingress(GroupId=gids[0], SourceSecurityGroupName=gids[1])
+        ec2.authorize_security_group_ingress(GroupId=gids[0], SourceSecurityGroupName=gids[2])
+
         print '%s: Completed deployment of %s' % (timestamp(), args.name)
 
     if args.command == 'update':
