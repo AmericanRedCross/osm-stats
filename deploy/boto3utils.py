@@ -6,7 +6,8 @@ import time
 import datetime
 import json
 import re
-import subprocess
+from urllib2 import urlopen
+
 
 
 def timestamp():
@@ -27,7 +28,7 @@ def create_stream(sname):
     return kinesis.describe_stream(StreamName=sname)['StreamDescription']
 
 
-def create_role(name, policy=None, instance_profile=False):
+def get_or_create_role(name, policies=None, instance_profile=False):
     """ Create a role with an optional inline policy """
     iam = boto3.client('iam')
     policydoc = {
@@ -45,8 +46,9 @@ def create_role(name, policy=None, instance_profile=False):
         role = iam.create_role(RoleName=name, AssumeRolePolicyDocument=json.dumps(policydoc))['Role']
 
     # attach inline policy
-    if policy is not None:
-        iam.attach_role_policy(RoleName=role['RoleName'], PolicyArn=policy)
+    if policies is not None:
+        for p in policies:
+            iam.attach_role_policy(RoleName=role['RoleName'], PolicyArn=p)
     # add role to an instance profile and return that
     if instance_profile:
         profiles = iam.list_instance_profiles()['InstanceProfiles']
@@ -56,6 +58,7 @@ def create_role(name, policy=None, instance_profile=False):
         profile = iam.create_instance_profile(InstanceProfileName=name)['InstanceProfile']
         iam.add_role_to_instance_profile(InstanceProfileName=profile['InstanceProfileName'],
                                          RoleName=role['RoleName'])
+        # time.sleep(5)
         return profile
     else:
         return role
@@ -64,10 +67,11 @@ def create_role(name, policy=None, instance_profile=False):
 def create_function(name, zfile, lsize=512, timeout=10, update=False):
     """ Create, or update if exists, lambda function """
     # create role for this function
-    role = create_role(name + '_lambda-kinesis',
-                       policy='arn:aws:iam::aws:policy/service-role/AWSLambdaKinesisExecutionRole')
-
+    role = get_or_create_role(name + '_lambda',
+                              policies=['arn:aws:iam::aws:policy/service-role/AWSLambdaKinesisExecutionRole',
+                                        'arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole'])
     l = boto3.client('lambda')
+    ec2 = boto3.client('ec2')
     with open(zfile, 'rb') as zipfile:
         funcs = l.list_functions()['Functions']
         if name in [f['FunctionName'] for f in funcs]:
@@ -81,6 +85,8 @@ def create_function(name, zfile, lsize=512, timeout=10, update=False):
                         return f
         else:
             print '%s: Creating %s lambda function' % (timestamp(), name)
+            group = get_or_create_security_group('%s_lambda' % name)
+            # subnets = [s['SubnetId'] for s in ec2.describe_subnets()['Subnets']]
             return l.create_function(
                 FunctionName=name,
                 Runtime='nodejs',
@@ -90,7 +96,8 @@ def create_function(name, zfile, lsize=512, timeout=10, update=False):
                 Timeout=timeout,
                 MemorySize=lsize,
                 Publish=True,
-                Code={'ZipFile': zipfile.read()}
+                Code={'ZipFile': zipfile.read()},
+                # VpcConfig={'SubnetIds': subnets, 'SecurityGroupIds': [group.group_id]}
             )
 
 
@@ -103,9 +110,17 @@ def create_database(name, password, dbclass='db.t2.medium', storage=5):
     dbs = [db['DBInstanceIdentifier'] for db in rds.describe_db_instances()['DBInstances']]
     if name not in dbs:
         print '%s: Creating RDS database %s' % (timestamp(), name)
+
+        my_ip = json.load(urlopen('https://api.ipify.org/?format=json'))['ip']
+        perms = [
+            {'IpProtocol': 'tcp', 'FromPort': 5432, 'ToPort': 5432, 'IpRanges': [{'CidrIp': my_ip + '/32'}]},
+        ]
+        group = get_or_create_security_group('%s_rds' % name, permissions=perms)
+
         db = rds.create_db_instance(
             DBName=dbname, DBInstanceIdentifier=name, DBInstanceClass=dbclass, Engine='postgres',
-            MasterUsername=dbname, MasterUserPassword=password, # VpcSecurityGroupIds=['sg-5e742627'],
+            MasterUsername=dbname, MasterUserPassword=password, VpcSecurityGroupIds=[group.group_id],
+            # VpcSecurityGroupIds=['sg-5e742627'],
             AllocatedStorage=storage
         )['DBInstance']
         waiter = rds.get_waiter('db_instance_available')
@@ -120,7 +135,7 @@ def create_database(name, password, dbclass='db.t2.medium', storage=5):
     return db
 
 
-def create_security_group(name):
+def create_security_group(name, permissions=None):
     """ Create security group or retrieve existing and allow SSH and HTTP """
     ec2 = boto3.client('ec2')
     ec2r = boto3.resource('ec2')
@@ -132,13 +147,24 @@ def create_security_group(name):
         gid = ec2.create_security_group(GroupName=name, Description=name)['GroupId']
     group = ec2r.SecurityGroup(gid)
     # add SSH and HTTP inbound rules
-    ec2.authorize_security_group_ingress(
-        GroupId=group.group_id,
-        IpPermissions=[
-            {'IpProtocol': 'tcp', 'FromPort': 80, 'ToPort': 80, 'IpRanges': [{'CidrIp': '0.0.0.0/0'}]},
-            {'IpProtocol': 'tcp', 'FromPort': 22, 'ToPort': 22, 'IpRanges': [{'CidrIp': '0.0.0.0/0'}]}
-        ]
-    )
+    if permissions is not None:
+        ec2.authorize_security_group_ingress(
+            GroupId=group.group_id,
+            IpPermissions=permissions,
+        )
+    return group
+
+
+def get_or_create_security_group(name, permissions=None):
+    """ Get or create a security group of this name """
+    ec2 = boto3.client('ec2')
+    ec2resource = boto3.resource('ec2')
+    filts = [{'Name': 'group-name', 'Values': [name]}]
+    groups = ec2.describe_security_groups(Filters=filts)['SecurityGroups']
+    if len(groups) == 0:
+        group = create_security_group(name, permissions=permissions)
+    else:
+        group = ec2resource.SecurityGroup(groups[0]['GroupId'])
     return group
 
 
@@ -154,20 +180,7 @@ def get_ec2(name):
         inst = ec2resource.Instance(instances['Reservations'][0]['Instances'][0]['InstanceId'])
         return inst
     except Exception:
-        return None      
-
-
-def get_or_create_security_group(name):
-    """ Get or create a security group of this name """
-    ec2 = boto3.client('ec2')
-    ec2resource = boto3.resource('ec2')
-    filts = [{'Name': 'group-name', 'Values': [name]}]
-    groups = ec2.describe_security_groups(Filters=filts)['SecurityGroups']
-    if len(groups) == 0:
-        group = create_security_group(name)
-    else:
-        group = ec2resource.SecurityGroup(groups[0]['GroupId'])   
-    return group   
+        return None
 
 
 def create_ec2(name, instancetype='t2.medium', AMI='ami-60b6c60a'):
@@ -196,13 +209,16 @@ def create_ec2(name, instancetype='t2.medium', AMI='ami-60b6c60a'):
             f.write(key_pair['KeyMaterial'])
         os.chmod(pfile, 0600)
 
-        # create a security group
-        group = get_or_create_security_group('%s_ec2' % name)
+        # create a security group with permissions
+        perms = [
+            {'IpProtocol': 'tcp', 'FromPort': 80, 'ToPort': 80, 'IpRanges': [{'CidrIp': '0.0.0.0/0'}]},
+            {'IpProtocol': 'tcp', 'FromPort': 22, 'ToPort': 22, 'IpRanges': [{'CidrIp': '0.0.0.0/0'}]}
+        ]
+        group = get_or_create_security_group('%s_ec2' % name, permissions=perms)
 
         # create role
-        role = create_role('%s_ec2' % name, instance_profile=True,
-                           policy='arn:aws:iam::aws:policy/CloudWatchFullAccess')
-        print 'role', role
+        role = get_or_create_role('%s_ec2' % name, instance_profile=True,
+                           policies=['arn:aws:iam::aws:policy/CloudWatchFullAccess'])
 
         print '%s: Creating EC2 instance %s' % (timestamp(), name)
         instances = ec2resource.create_instances(
