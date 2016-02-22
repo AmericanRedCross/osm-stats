@@ -19,6 +19,8 @@ The user running the script should have credentials and a default AWS region con
 Install the Python requirements for the script, and configure AWS credentials and default region
 
 ```sh
+$ git clone git@github.com:AmericanRedCross/osm-stats.git
+$ cd osm-stats/deploy
 $ pip install -r requirements.txt
 $ aws configure
 
