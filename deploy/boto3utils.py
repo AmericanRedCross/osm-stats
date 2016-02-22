@@ -109,14 +109,14 @@ def create_database(name, password, dbclass='db.t2.medium', storage=5):
     # TODO - check if DB exists
     dbs = [db['DBInstanceIdentifier'] for db in rds.describe_db_instances()['DBInstances']]
     if name not in dbs:
-        print '%s: Creating RDS database %s' % (timestamp(), name)
-
-        my_ip = json.load(urlopen('https://api.ipify.org/?format=json'))['ip']
-        my_ip = '0.0.0.0'
+        my_ip = json.load(urlopen('https://api.ipify.org/?format=json'))['ip'] + '/32'
+        my_ip = '0.0.0.0/0'
         perms = [
-            {'IpProtocol': 'tcp', 'FromPort': 5432, 'ToPort': 5432, 'IpRanges': [{'CidrIp': my_ip + '/32'}]},
+            {'IpProtocol': 'tcp', 'FromPort': 5432, 'ToPort': 5432, 'IpRanges': [{'CidrIp': my_ip}]},
         ]
         group = get_or_create_security_group('%s_rds' % name, permissions=perms)
+
+        print '%s: Creating RDS database %s' % (timestamp(), name)
 
         db = rds.create_db_instance(
             DBName=dbname, DBInstanceIdentifier=name, DBInstanceClass=dbclass, Engine='postgres',
