@@ -92,6 +92,7 @@ if __name__ == "__main__":
     parser.add_argument('--lsize', help='Size (MB) of Lambda function', default=512)
     parser.add_argument('--ltimeout', help='Timeout (seconds) of Lambda function', default=300)
     parser.add_argument('--dbclass', help='The Amazon instance class for the RDS database', default='db.t2.medium')
+    parser.add_argument('--ec2class', help='The Amazon instance class for the EC2', default='t2.medium')
     parser.add_argument('--password', help='The password to use for database', required=True)  # default='t3sting9huy')
 
     parser = subparser.add_parser('update', help='Update OSM Stats with latest code')
@@ -138,7 +139,7 @@ if __name__ == "__main__":
             l.create_event_source_mapping(FunctionName=args.name, EventSourceArn=stream['StreamARN'],
                                           BatchSize=batchsz, StartingPosition='TRIM_HORIZON')
         # start up EC2 instance
-        ec2_machine = create_ec2(args.name)
+        ec2_machine = create_ec2(args.name, instancetype=args.ec2class, AMI='ami-63b25203')
         env.append('EC2_URL=%s' % ec2_machine.public_dns_name)
         with open('%s.env' % args.name, 'a') as f:
             f.write(env[-1])
