@@ -6,9 +6,7 @@ import time
 import datetime
 import json
 import re
-import time
 from urllib2 import urlopen
-
 
 
 def timestamp():
@@ -59,7 +57,8 @@ def get_or_create_role(name, policies=None, instance_profile=False):
         profile = iam.create_instance_profile(InstanceProfileName=name)['InstanceProfile']
         iam.add_role_to_instance_profile(InstanceProfileName=profile['InstanceProfileName'],
                                          RoleName=role['RoleName'])
-        time.sleep(10)
+        # give time for instance profile to register
+        time.sleep(5)
         return profile
     else:
         return role
@@ -87,7 +86,7 @@ def create_function(name, zfile, lsize=512, timeout=10, update=False):
         else:
             print '%s: Creating %s lambda function' % (timestamp(), name)
             group = get_or_create_security_group('%s_lambda' % name)
-            # subnets = [s['SubnetId'] for s in ec2.describe_subnets()['Subnets']]
+            subnets = [s['SubnetId'] for s in ec2.describe_subnets()['Subnets']]
             return l.create_function(
                 FunctionName=name,
                 Runtime='nodejs',
@@ -98,7 +97,7 @@ def create_function(name, zfile, lsize=512, timeout=10, update=False):
                 MemorySize=lsize,
                 Publish=True,
                 Code={'ZipFile': zipfile.read()},
-                # VpcConfig={'SubnetIds': subnets, 'SecurityGroupIds': [group.group_id]}
+                VpcConfig={'SubnetIds': subnets, 'SecurityGroupIds': [group.group_id]}
             )
 
 
@@ -111,7 +110,7 @@ def create_database(name, password, dbclass='db.t2.medium', storage=5):
     dbs = [db['DBInstanceIdentifier'] for db in rds.describe_db_instances()['DBInstances']]
     if name not in dbs:
         my_ip = json.load(urlopen('https://api.ipify.org/?format=json'))['ip'] + '/32'
-        my_ip = '0.0.0.0/0'
+        # my_ip = '0.0.0.0/0'
         perms = [
             {'IpProtocol': 'tcp', 'FromPort': 5432, 'ToPort': 5432, 'IpRanges': [{'CidrIp': my_ip}]},
         ]

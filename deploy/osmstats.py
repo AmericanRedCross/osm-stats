@@ -139,7 +139,7 @@ if __name__ == "__main__":
             l.create_event_source_mapping(FunctionName=args.name, EventSourceArn=stream['StreamARN'],
                                           BatchSize=batchsz, StartingPosition='TRIM_HORIZON')
         # start up EC2 instance
-        ec2_machine = create_ec2(args.name, instancetype=args.ec2class, AMI='ami-63b25203')
+        ec2_machine = create_ec2(args.name, instancetype=args.ec2class, AMI='ami-60b6c60a') #AMI='ami-63b25203')
         env.append('EC2_URL=%s' % ec2_machine.public_dns_name)
         with open('%s.env' % args.name, 'a') as f:
             f.write(env[-1])
@@ -151,8 +151,15 @@ if __name__ == "__main__":
         groups = ['%s_rds' % args.name, '%s_ec2' % args.name, '%s_lambda' % args.name]
         groups = [g for g in ec2.describe_security_groups(GroupNames=groups)['SecurityGroups']]
         gid = groups[0]['GroupId']
-        ec2.authorize_security_group_ingress(GroupId=gid, SourceSecurityGroupName=groups[1]['GroupName'])
-        ec2.authorize_security_group_ingress(GroupId=gid, SourceSecurityGroupName=groups[2]['GroupName'])
+        try:
+            ec2.authorize_security_group_ingress(GroupId=gid, SourceSecurityGroupName=groups[1]['GroupName'])
+            ec2.authorize_security_group_ingress(GroupId=gid, SourceSecurityGroupName=groups[2]['GroupName'])
+            rds = boto3.client('rds')
+            import pdb; pdb.set_trace()
+            rds.reboot_db_instance(DBInstanceIdentifier=args.name)
+        except Exception as e:
+            # this likely means the rules already exist
+            pass
 
         print '%s: Completed deployment of %s' % (timestamp(), args.name)
 
