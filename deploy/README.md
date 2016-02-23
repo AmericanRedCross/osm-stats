@@ -19,6 +19,8 @@ The user running the script should have credentials and a default AWS region con
 Install the Python requirements for the script, and configure AWS credentials and default region
 
 ```sh
+$ git clone git@github.com:AmericanRedCross/osm-stats.git
+$ cd osm-stats/deploy
 $ pip install -r requirements.txt
 $ aws configure
 
@@ -26,7 +28,7 @@ $ aws configure
 $ npm install -g knex
 
 # call with help for list of parameters
-$ ./osm-stats-deploy.py -h
+$ ./osmstats.py deploy -h
 
 ```
 
@@ -35,7 +37,7 @@ $ ./osm-stats-deploy.py -h
 Call the deployment script with a name used to identify all the AWS services created.
 
 ```sh
-$ ./osm-stats-deploy.py --name osmstats-mm
+$ ./osmstats.py deploy --name osmstats-mm
 ```
 
 Where `--name` defines the name of the deployment and used for the naming and tagging of the services. Information messages will be printed for each step, and the entire process can take up to 15 minutes.   Additional log output for the Deployment to EC2 step is saved in a `.fabric.log` script.
