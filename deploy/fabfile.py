@@ -4,9 +4,11 @@ from fabric.operations import run, put, sudo
 def setup_host():
     """ Update machine and install required packages """
     sudo('yum update -y')
-    sudo('yum install -y docker')
+    sudo('yum install -y docker awslogs')
     sudo('pip install docker-compose')
     sudo('service docker start')
+    sudo('service awslogs start')
+    sudo('service chkconfig awslogs on')
     sudo('usermod -a -G docker ec2-user')
 
 
