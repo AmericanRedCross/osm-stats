@@ -8,7 +8,7 @@ def setup_host():
     sudo('pip install docker-compose')
     sudo('service docker start')
     sudo('service awslogs start')
-    sudo('service chkconfig awslogs on')
+    sudo('chkconfig awslogs on')
     sudo('usermod -a -G docker ec2-user')
 
 
