@@ -155,7 +155,6 @@ if __name__ == "__main__":
             ec2.authorize_security_group_ingress(GroupId=gid, SourceSecurityGroupName=groups[1]['GroupName'])
             ec2.authorize_security_group_ingress(GroupId=gid, SourceSecurityGroupName=groups[2]['GroupName'])
             rds = boto3.client('rds')
-            import pdb; pdb.set_trace()
             rds.reboot_db_instance(DBInstanceIdentifier=args.name)
         except Exception as e:
             # this likely means the rules already exist
