@@ -1,10 +1,12 @@
 from fabric.operations import run, put, sudo
 
 
-def setup_host():
+def setup_host(name="osmstats"):
     """ Update machine and install required packages """
     sudo('yum update -y')
     sudo('yum install -y docker awslogs')
+    sudo('sed -i \'s/^log_group_name =.*/log_group_name = \/aws\/ec2\/%s/\' /etc/awslogs/awslogs.conf' % name)
+    sudo('sed -i \'s/^log_stream_name =.*/log_stream_name = syslog/\' /etc/awslogs/awslogs.conf')
     sudo('pip install docker-compose')
     sudo('service docker start')
     sudo('service awslogs start')
@@ -15,9 +17,6 @@ def setup_host():
 def copy_files():
     """ Copy Docker files to host """
     put('.env', '~/', use_sudo=True)
-    sudo("sed 's/^/export /g' .env > /etc/default/docker")
-    run("sed 's/^/export /g' .env >> /home/ec2-user/.bash_profile")
-    sudo('service docker restart')
     put('docker-compose.yml', '~/', use_sudo=True)
     put('osm-stats-api', '~/', use_sudo=True)
     put('planet-stream', '~/', use_sudo=True)

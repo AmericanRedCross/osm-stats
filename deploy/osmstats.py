@@ -64,7 +64,7 @@ def deploy_to_ec2(name, host_string, logfile=None):
         print '%s: Deploying to EC2' % timestamp()
         sys.stdout = logfile
         with settings(host_string=host_string, key_filename=name + '.pem', connection_attempts=3):
-            fabfile.setup_host()
+            fabfile.setup_host(name)
             fabfile.copy_files()
         # hack to use new session so user guaranteed part of docker group
         subprocess.call(['fab', 'deploy', '-i%s.pem' % name, '-H %s' % host_string], stdout=logfile)
