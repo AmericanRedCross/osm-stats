@@ -10,7 +10,7 @@ OSM Stats is made up of several repositories:
 | [planet-stream](https://github.com/developmentseed/planet-stream) | Streaming minute by minute diffs of OSM changesets |
 | [osm-stats-worker](https://github.com/AmericanRedCross/osm-stats-workers) | Processing metrics from changesets |
 | [osm-stats-api](https://github.com/AmericanRedCross/osm-stats-api) | User metrics API |
-| [osm-stats-users]() | User Pages |
-| [osm-stats-leaderboard]() | Leaderboard pages |
+
+This will create a stack that processes user metrics and can be accessed through the API. As an example of front end see the [MissingMaps](http://www.missingmaps.org/) project that uses a [users](https://github.com/MissingMaps/users) and [leaderboards](https://github.com/MissingMaps/leaderboards) repositories to create pages using osm-stats-api.
 
 This repository contains a deployment script and instructions as well as notes and tools for testing and analyzing logs from processing.
