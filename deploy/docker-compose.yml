@@ -1,0 +1,36 @@
+redis:
+  image: redis
+  command: redis-server --appendonly yes
+  ports:
+    - '6379'
+  log_driver: syslog
+  volumes_from:
+    - redis_data
+stream:
+  build: ./planet-stream
+  env_file: .env
+  links:
+    - redis
+    - forgettable
+  log_driver: syslog
+api:
+  build: ./osm-stats-api
+  links:
+    - redis
+    - forgettable
+  ports:
+    - 80:3000
+  env_file: .env
+  log_driver: syslog
+forgettable:
+  build: ./forgettable
+  ports:
+    - 8080:8080
+  links:
+    - redis
+  log_driver: syslog
+redis_data:
+  image: alpine
+  command: "true"
+  volumes:
+    - ./redis_data:/data
