@@ -26,7 +26,7 @@ For each badge, the score necessary to achieve each of the three tiers is stored
 buildings: {
   name: 'The Wright Stuff',
   id: 4,
-  tiers: {**_1: 100, 2: 500, 3: 1000_**}
+  tiers: {1: 100, 2: 500, 3: 1000}
 },
 ```
 
