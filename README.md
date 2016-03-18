@@ -13,4 +13,4 @@ OSM Stats is made up of several repositories:
 
 This will create a stack that processes user metrics and can be accessed through the API. As an example of front end see the [MissingMaps](http://www.missingmaps.org/) project that uses a [users](https://github.com/MissingMaps/users) and [leaderboards](https://github.com/MissingMaps/leaderboards) repositories to create pages using osm-stats-api.
 
-This repository contains a deployment script and instructions as well as notes and tools for testing and analyzing logs from processing.
+This repository contains a deployment script and instructions, notes and tools for testing and analyzing logs from processing, a description of the API behind the MissingMaps website, and a tutorial on adding badges to the system.
