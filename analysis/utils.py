@@ -4,7 +4,8 @@ import json
 import time
 import datetime
 import pandas as pd
-import boto3
+import boto3.session
+import re
 
 
 def json_serialize(obj):
@@ -42,9 +43,10 @@ def dicts2DataFrame(dicts):
     return df
 
 
-def fetch_stream(name):
+def fetch_stream(name, profile='default'):
     """ Get records from a Kinesis stream """
-    kinesis = boto3.client('kinesis')
+    session = boto3.session.Session(profile_name=profile)
+    kinesis = session.client('kinesis')
 
     records = []
     # get shard ids
@@ -66,3 +68,84 @@ def fetch_stream(name):
             # avoid ProvisionedThroughputExceededException
             time.sleep(1)
     return records
+
+
+def parse_lambda_event(event):
+    """ Parse JSON event """
+    if not isinstance(event['message'], basestring):
+        msg = event['message'][0]
+    else:
+        msg = event['message']
+
+    start = msg.find('RequestId')
+    if start > -1:
+        requestId = msg[(start+11):start+47]
+    else:
+        parts = msg.split('\t')
+        try:
+            # msgtime = parse(parts[0])
+            requestId = parts[1]
+            msg = ' '.join(parts[2:])
+        except Exception:
+            return None
+
+    if msg[0:5] == 'START':
+        return requestId, {'start_time': event['timestamp']}
+    elif msg[0:3] == 'END':
+        return requestId, {'end_time': event['timestamp']}
+    elif msg[0:6] == 'REPORT':
+        duration = None
+        d = re.search('Duration:(.*) ms\t', msg)
+        duration = d.group(1) if d else None
+        return requestId, {
+            'report_time': event['timestamp'],
+            'duration': float(duration)
+        }
+    elif msg[0:7] == 'PAYLOAD':
+        try:
+            payload = json.loads(msg[8:])
+            changeset = payload['elements'][0]['changeset']
+        except:
+            payload = msg[8:]
+            changeset = 'unable to parse'
+        return requestId, {
+            'payload_time': event['timestamp'],
+            'payload': payload,
+            'changeset': changeset
+        }
+    elif msg[0:7] == 'SUCCESS':
+        return requestId, {
+            'success_time': event['timestamp'],
+            'success': msg[8:]
+        }
+    elif msg[0:7] == 'FAILURE':
+        return requestId, {
+            'failure_time': event['timestamp'],
+            'failure': msg[8:]
+        }
+    # elif msg[0:4] == 'Task':
+        # this is a timeout, which does not provide the requestId
+    #    return None
+    else:
+        # print msg[0:10]
+        return None
+
+
+def distill_lambda_logs(filename):
+    """ Initialize object with newline delimited JSON log file """
+    requests = {}
+    i = 0
+    with open(filename, 'r') as f:
+        line = f.readline()
+        while line:
+            event = parse_lambda_event(json.loads(line))
+            if event is not None:
+                requestId = event[0]
+                if requestId not in requests.keys():
+                    requests[requestId] = {'requestId': requestId, 'runs': 1}
+                if 'start_time' in event[1] and 'start_time' in requests[requestId]:
+                    requests[requestId]['runs'] = requests[requestId]['runs'] + 1
+                requests[requestId].update(event[1])
+            line = f.readline()
+            i = i + 1
+    return requests
