@@ -1,5 +1,6 @@
 redis:
   image: redis
+  restart: always
   command: redis-server --appendonly yes
   ports:
     - '6379'
@@ -8,6 +9,7 @@ redis:
     - redis_data
 stream:
   build: ./planet-stream
+  restart: on-failure:10
   env_file: .env
   links:
     - redis
@@ -15,6 +17,7 @@ stream:
   log_driver: syslog
 api:
   build: ./osm-stats-api
+  restart: on-failure:10
   links:
     - redis
     - forgettable
@@ -24,6 +27,7 @@ api:
   log_driver: syslog
 forgettable:
   build: ./forgettable
+  restart: always
   ports:
     - 8080:8080
   links:
