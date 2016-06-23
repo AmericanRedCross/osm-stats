@@ -1,9 +1,11 @@
 FROM node:4.2
 
-RUN curl -sSL https://github.com/AmericanRedCross/osm-stats-api/archive/0.3.2.tar.gz \
+ENV API_VERSION 0.3.3
+
+RUN curl -sSL https://github.com/AmericanRedCross/osm-stats-api/archive/${API_VERSION}.tar.gz \
   | tar -v -C /usr/src -xz
 
-WORKDIR /usr/src/osm-stats-api-0.3.2
+WORKDIR /usr/src/osm-stats-api-${API_VERSION}
 RUN npm install
 
 CMD ["npm", "start"]
