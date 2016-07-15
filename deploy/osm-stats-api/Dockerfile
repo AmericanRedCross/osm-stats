@@ -1,6 +1,6 @@
 FROM node:4.2
 
-ENV API_VERSION 0.3.3
+ENV API_VERSION 0.4.0
 
 RUN curl -sSL https://github.com/AmericanRedCross/osm-stats-api/archive/${API_VERSION}.tar.gz \
   | tar -v -C /usr/src -xz
