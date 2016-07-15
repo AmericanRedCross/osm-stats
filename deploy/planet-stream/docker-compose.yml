@@ -1,0 +1,11 @@
+redis:
+  image: redis
+  ports:
+    - '6379'
+app:
+  build: .
+  environment:
+    - LOG_LEVEL='debug'
+    - PS_OUTPUT_DEBUG='true'
+  links:
+    - redis
