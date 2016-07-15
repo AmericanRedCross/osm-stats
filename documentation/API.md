@@ -2,19 +2,19 @@
 
 The base MissingMaps API endpoint is located at http://osmstats.redcross.org/
 
-### / (root) endpoint
-The `root` endpoint serves select total statistics for all tracked users, including km of roads, number of building edits, number of total edits, number of changesets, and the timestamp of the latest edit. This endpoint is used to populate the aggregate statistics sections of Missing Maps' [main landing page](http://www.missingmaps.org/) as well as its partner pages. A successful response is formatted as such:
+### /stats/{hashtag?} endpoint
+The `stats` endpoint serves select total statistics for all tracked users, including km of roads, number of building edits, number of total edits, number of changesets, and the timestamp of the latest edit for a hashtag. If a hashtag is not provided as a parameter (i.e, the URL is `/stats/`), the summary is calculated for all hashtags. This endpoint is used to populate the aggregate statistics sections of Missing Maps' [main landing page](http://www.missingmaps.org/) as well as its partner pages. A successful response is formatted as such:
 ```js
-[
-   {
-      "changesets": "13617",
-      "roads": "45287.58831951853223364900",
-      "users": "1076",
-      "buildings": "160839.00000000000000000000",
-      "edits": "191810.00000000000000000000",
-      "latest": "2016-03-03T20:57:20.000Z"
-   }
-]
+
+{
+   "changesets": 78780,
+   "users": 11650,
+   "roads": 179989.04738327922,
+   "buildings": 788602,
+   "edits": 979390,
+   "latest": "2016-07-15T04:36:58.000Z"
+ }
+
 ```
 ### /users endpoint
 The `users` endpoint of the API returns an array of objects representing all users in the system, with attributes for their numerical id and username. This endpoint is used to drive the username search feature of Missing Maps' user page portal. A successful response is formatted as such:
