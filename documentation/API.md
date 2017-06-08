@@ -207,3 +207,112 @@ The `/top-users/{hashtag-name}` endpoint takes a hashtag name and returns an obj
 ```
 ### /hashtags/{hashtag-name}/map endpoint
 The `/hashtags/{hashtag-name}/map` endpoint returns a GeoJSON feature collection of the past 100 edits made for a given hashtag.
+
+### /countries
+This endpoint returns a list of country names and their associated country code
+```
+[
+ [
+  "Ethiopia",
+  "ETH"
+ ],
+ [
+  "Finland",
+  "FIN"
+ ],
+ [
+  "Fiji",
+  "FJI"
+ ],
+ [
+  "Falkland Islands",
+  "FLK"
+ ],
+ ...
+]
+```
+
+### /countries/{country-code}
+This endpoint summarizes contribution statistics (counts and number of kilometers edited or modified for roads, buildings, waterways, and points of interest) for a country. It takes a country code and returns an object with keys representing the agregated stats. A successful response is formatted as such:
+```js
+{
+  "all_edits": "27510.00000000000000000000",
+  "road_count_add": "16034.00000000000000000000",
+  "road_count_mod": "5542.00000000000000000000",
+  "building_count_add": "4791.00000000000000000000",
+  "building_count_mod": "82.00000000000000000000",
+  "waterway_count_add": "1004.00000000000000000000",
+  "poi_count_add": "57.00000000000000000000",
+  "road_km_add": "5605.47169716601747136589",
+  "road_km_mod": "19014.40854617527836161500",
+  "contributors": "179"
+}
+```
+
+### /countries/{country-code}/hashtags
+This endpoint summarizes contribution statistics (counts and number of kilometers edited or modified for roads, buildings, waterways, and points of interest) for a country grouped by hashtag. It takes a country code and returns an array of objects with keys representing the agregated stats grouped by hashtag. A successful response is formatted as such:
+```js
+[
+ {
+  "all_edits": "19.00000000000000000000",
+  "road_count_add": "0.00000000000000000000",
+  "road_count_mod": "0.00000000000000000000",
+  "building_count_add": "19.00000000000000000000",
+  "building_count_mod": "0.00000000000000000000",
+  "waterway_count_add": "0.00000000000000000000",
+  "poi_count_add": "0.00000000000000000000",
+  "road_km_add": "0.00000000000000000000",
+  "road_km_mod": "0.00000000000000000000",
+  "waterway_km_add": "0.00000000000000000000",
+  "hashtag": "avivauk"
+ },
+ {
+  "all_edits": "3323.00000000000000000000",
+  "road_count_add": "318.00000000000000000000",
+  "road_count_mod": "193.00000000000000000000",
+  "building_count_add": "2673.00000000000000000000",
+  "building_count_mod": "25.00000000000000000000",
+  "waterway_count_add": "111.00000000000000000000",
+  "poi_count_add": "3.00000000000000000000",
+  "road_km_add": "49.41293648280454419000",
+  "road_km_mod": "353.39189087057260239000",
+  "waterway_km_add": "47.06655947226091400000",
+  "hashtag": "benin"
+ },
+...
+]
+```
+
+### /countries/{country-code}/users
+This endpoint summarizes contribution statistics (counts and number of kilometers edited or modified for roads, buildings, waterways, and points of interest) for a country grouped by user. It takes a country code and returns an array of objects with keys representing the agregated stats grouped by user. A successful response is formatted as such:
+```js
+[
+ {
+  "all_edits": "5.00000000000000000000",
+  "road_count_add": "4.00000000000000000000",
+  "road_count_mod": "1.00000000000000000000",
+  "building_count_add": "0.00000000000000000000",
+  "building_count_mod": "0.00000000000000000000",
+  "waterway_count_add": "0.00000000000000000000",
+  "poi_count_add": "0.00000000000000000000",
+  "road_km_add": "1.91586712308830530000",
+  "road_km_mod": "0.27578070714867586000",
+  "name": "Andre Jvirblis",
+  "user_id": 3283943
+ },
+ {
+  "all_edits": "11.00000000000000000000",
+  "road_count_add": "9.00000000000000000000",
+  "road_count_mod": "2.00000000000000000000",
+  "building_count_add": "0.00000000000000000000",
+  "building_count_mod": "0.00000000000000000000",
+  "waterway_count_add": "0.00000000000000000000",
+  "poi_count_add": "0.00000000000000000000",
+  "road_km_add": "2.03991570555279688000",
+  "road_km_mod": "55.38433409595046899000",
+  "name": "Frances P",
+  "user_id": 3914153
+ },
+...
+]
+```
