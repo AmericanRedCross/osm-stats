@@ -207,3 +207,6 @@ The `/top-users/{hashtag-name}` endpoint takes a hashtag name and returns an obj
 ```
 ### /hashtags/{hashtag-name}/map endpoint
 The `/hashtags/{hashtag-name}/map` endpoint returns a GeoJSON feature collection of the past 100 edits made for a given hashtag.
+
+### /calendar
+Used to proxy google calendar iCal endpoints to the frontend
