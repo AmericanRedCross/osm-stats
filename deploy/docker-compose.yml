@@ -1,5 +1,5 @@
 redis:
-  image: redis
+  image: redis:3
   restart: always
   command: redis-server --appendonly yes
   ports:
