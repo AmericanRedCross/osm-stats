@@ -1,40 +1,43 @@
-redis:
-  image: redis:3
-  restart: always
-  command: redis-server --appendonly yes
-  ports:
-    - '6379'
-  log_driver: syslog
-  volumes_from:
-    - redis_data
-stream:
-  build: ./planet-stream
-  restart: on-failure:10
-  env_file: .env
-  links:
-    - redis
-    - forgettable
-  log_driver: syslog
-api:
-  image: quay.io/americanredcross/osm-stats-api:latest
-  restart: on-failure:10
-  links:
-    - redis
-    - forgettable
-  ports:
-    - 80:3000
-  env_file: .env
-  log_driver: syslog
-forgettable:
-  build: ./forgettable
-  restart: always
-  ports:
-    - 8080:8080
-  links:
-    - redis
-  log_driver: syslog
-redis_data:
-  image: alpine
-  command: "true"
-  volumes:
-    - ./redis_data:/data
+version: '3'
+
+services:
+  redis:
+    image: redis:3
+    restart: always
+    command: redis-server --appendonly yes
+    logging:
+      driver: syslog
+    volumes:
+      - redis:/data
+  stream:
+    build: ./planet-stream
+    restart: on-failure:10
+    env_file: .env
+    links:
+      - redis
+      - forgettable
+    logging:
+      driver: syslog
+  api:
+    image: quay.io/americanredcross/osm-stats-api:latest
+    restart: on-failure:10
+    links:
+      - redis
+      - forgettable
+    ports:
+      - 80:3000
+    env_file: .env
+    logging:
+      driver: syslog
+  forgettable:
+    build: ./forgettable
+    restart: always
+    ports:
+      - 8080:8080
+    links:
+      - redis
+    logging:
+      driver: syslog
+
+volumes:
+  redis:
