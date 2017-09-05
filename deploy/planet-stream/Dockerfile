@@ -1,10 +1,14 @@
-FROM node:6.0
+FROM node:6
 
-ADD package.json /tmp/package.json
-RUN cd /tmp && npm install
-RUN mkdir -p /opt/app && cp -a /tmp/node_modules /opt/app/
+ENV NPM_CONFIG_LOGLEVEL warn
 
-WORKDIR /opt/app
-ADD . /opt/app
+WORKDIR /opt/app/
+
+COPY package.json /opt/app/
+
+RUN npm install \
+  && rm -rf /root/.npm
+
+COPY . /opt/app
 
 CMD ["node", "index.js"]
