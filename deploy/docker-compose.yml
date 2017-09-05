@@ -16,7 +16,7 @@ stream:
     - forgettable
   log_driver: syslog
 api:
-  build: ./osm-stats-api
+  image: quay.io/americanredcross/osm-stats-api:latest
   restart: on-failure:10
   links:
     - redis
