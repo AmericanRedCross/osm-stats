@@ -124,7 +124,7 @@ This endpoint is used to populate each user's profile within Missing Maps' user 
 ```
 ### /hashtags endpoint
 The `hashtags` endpoint returns an object containing a hashtags array and a trending array.
-The hashtags array contains every hashtag known to the system, and the trending array contains between 0 and 5 of the most trending hashtags, depending on how many hashtags are calculated as trending at a given time. This endpoint is used as a reference to hashtags in the system, for further investigation using the `/hashtags/{hashtag-name}` endpoint, and the trending property is employed by Missing Maps' leaderboard pages to detect recently-active projects. A successful response from the hashtags endpoint is formatted as such:
+The hashtags array contains every hashtag known to the system, and the trending array contains between 0 and 5 of the most trending hashtags, depending on how many hashtags are calculated as trending at a given time. This endpoint is used as a reference to hashtags in the system, and the trending property is employed by Missing Maps' leaderboard pages to detect recently-active projects. A successful response from the hashtags endpoint is formatted as such:
 ```js
 {
    "hashtags": [
@@ -138,34 +138,6 @@ The hashtags array contains every hashtag known to the system, and the trending 
       "hotosm-project-724",
       ...
    ]
-}
-```
-### /hashtags/{hashtag-name} endpoint
-The `hashtags/hashtag-name` endpoint returns the total number of road, building, waterway, and poi edits for a hashtag, an array of users who have edited that hashtag and their total edits, and an array of timestamps with the total number of road, buildings, waterways or POIs submitted at that time. This endpoint is used to drive the per-user statistics shown in Missing Maps' leaderboard pages. A successful response is formatted as such:
-```js
-{
-   "total": {
-      "roads": 906,
-      "buildings": 2,
-      "waterways": 1,
-      "pois": 0
-   },
-   "users": {
-      "1653463": {
-         "name": "akdegraff",
-         "total": 46
-      },
-      ...
-   },
-   "times": {
-      "Sun Feb 14 2016 15:55:41 GMT-0500 (EST)": {
-         "roads": 1,
-         "buildings": 0,
-         "waterways": 0,
-         "pois": 0
-      },
-      ...
-   }
 }
 ```
 ### /group-summaries/{hashtag-name-1, hashtag-name-2, ...} endpoint
