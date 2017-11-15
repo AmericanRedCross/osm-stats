@@ -7,8 +7,7 @@ var Log = require('log');
 var log = new Log(process.env.LOG_LEVEL || 'info');
 log.debug(process.env);
 
-var redis_host = process.env.REDIS_PORT_6379_TCP_ADDR || process.env.REDIS_HOST || '127.0.0.1';
-var redis_port = process.env.REDIS_PORT_6379_TCP_PORT || process.env.REDIS_PORT || 6379;
+var REDIS_URL = process.env.REDIS_URL || 'redis://redis/';
 
 var forgettable_host = process.env.FORGETTABLE_PORT_8080_TCP_ADDR || '127.0.0.1';
 var forgettable_port = process.env.FORGETTABLE_PORT_8080_TCP_PORT || 8080;
@@ -19,10 +18,7 @@ var R = require('ramda');
 var Redis = require('ioredis');
 var request = require('request-promise');
 
-var redis = new Redis({
-  host: redis_host,
-  port: redis_port
-});
+var redis = new Redis(REDIS_URL);
 var toGeojson = require('./lib/toGeojson.js');
 
 var tracked = ['#missingmaps'];
@@ -118,8 +114,7 @@ if (process.env.SIMULATION) {
   // Start planet-stream
   var diffs = require('planet-stream')({
     limit: process.env.LIMIT || 25,
-    host: redis_host,
-    port: redis_port
+    redisUrl: REDIS_URL
   });
 
   // filter data for hashtags
