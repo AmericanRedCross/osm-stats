@@ -1,6 +1,8 @@
 // OSM Planet Stream service
 // Mostly from https://github.com/developmentseed/planet-stream/tree/master/examples/kinesis
 
+require('babel-polyfill');
+var stream = require('stream');
 var Log = require('log');
 var log = new Log(process.env.LOG_LEVEL || 'info');
 log.debug(process.env);
@@ -11,6 +13,7 @@ var redis_port = process.env.REDIS_PORT_6379_TCP_PORT || process.env.REDIS_PORT 
 var forgettable_host = process.env.FORGETTABLE_PORT_8080_TCP_ADDR || '127.0.0.1';
 var forgettable_port = process.env.FORGETTABLE_PORT_8080_TCP_PORT || 8080;
 
+var EventHub = require('osm-replication-streams').sinks.EventHub;
 var kinesis = require('./lib/kinesis.js');
 var R = require('ramda');
 var Redis = require('ioredis');
@@ -23,6 +26,14 @@ var redis = new Redis({
 var toGeojson = require('./lib/toGeojson.js');
 
 var tracked = ['#missingmaps'];
+
+var sink = new stream.PassThrough({
+  objectMode: true
+});
+
+if (process.env.EH_CONNSTRING != null) {
+  sink = new EventHub(process.env.EH_CONNSTRING, process.env.EH_PATH);
+}
 
 // parse comments into hashtag list
 function getHashtags (str) {
@@ -38,7 +49,8 @@ function getHashtags (str) {
   });
   return hashlist;
 }
-function addToKinesis(obj) {
+
+function publish(obj) {
   var data = JSON.stringify(obj);
   var geo = toGeojson(obj.elements);
   geo.properties = obj.metadata;
@@ -67,18 +79,23 @@ function addToKinesis(obj) {
   } else {
     if (obj.metadata) {
       log.debug('About to add ' + obj.metadata.id);
-      var dataParams = {
-        Data: data,
-        PartitionKey: obj.metadata.id.toString(),
-        StreamName: process.env.KINESIS_STREAM
-      };
-      kinesis.kin.putRecord(dataParams, function (err, data) {
-        if (err) log.error(err);
-        else {
-          log.info('Added ' + obj.metadata.id);
-          log.debug('object:' + data);
-        }
-      });
+
+      if (process.env.KINESIS_STREAM != null) {
+        var dataParams = {
+          Data: data,
+          PartitionKey: obj.metadata.id.toString(),
+          StreamName: process.env.KINESIS_STREAM
+        };
+        kinesis.kin.putRecord(dataParams, function (err, data) {
+          if (err) log.error(err);
+          else {
+            log.info('Added ' + obj.metadata.id);
+            log.debug('object:', data);
+          }
+        });
+      } else {
+        sink.write(data);
+      }
     } else {
       log.info('No metadata for ' + obj);
     }
@@ -93,7 +110,7 @@ if (process.env.SIMULATION) {
 
   setInterval(function () {
     var changeset = simulation.randomChangeset();
-    addToKinesis(changeset);
+    publish(changeset);
   }, 1000);
 
 } else {
@@ -120,6 +137,6 @@ if (process.env.SIMULATION) {
     return intersection.length > 0;
   })
   // add a complete record to kinesis
-  .onValue(addToKinesis);
+  .onValue(publish);
 
 }
