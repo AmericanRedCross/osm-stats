@@ -22,6 +22,7 @@
     "turf-featurecollection": "^1.0.1"
   },
   "devDependencies": {
-    "babel-eslint": "^4.1.8"
+    "babel-eslint": "^4.1.8",
+    "nodemon": "^1.12.1"
   }
 }
