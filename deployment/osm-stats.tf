@@ -16,6 +16,11 @@ variable "db_user" {
   default = "osmstatsmm"
 }
 
+variable "stream_path" {
+  type = "string"
+  default = "osm-stats"
+}
+
 resource "random_string" "db_password" {
   length = 16
 }
@@ -31,7 +36,7 @@ resource "azurerm_container_group" "osm-stats-api" {
   resource_group_name = "${azurerm_resource_group.osm-stats.name}"
   ip_address_type = "public"
   os_type = "linux"
-  depends_on = ["azurerm_redis_cache.osm-stats", "azurerm_postgresql_database.osm-stats", "azurerm_postgresql_firewall_rule.osm-stats"]
+  depends_on = ["azurerm_redis_cache.osm-stats", "azurerm_postgresql_database.osm-stats", "azurerm_postgresql_firewall_rule.osm-stats", "azurerm_eventhub.osm-stats"]
 
   container {
     name = "osm-stats-api"
@@ -57,6 +62,21 @@ resource "azurerm_container_group" "osm-stats-api" {
 
     environment_variables {
       REDIS_URL = "redis://:${urlencode(azurerm_redis_cache.osm-stats.primary_access_key)}@${azurerm_redis_cache.osm-stats.hostname}:${azurerm_redis_cache.osm-stats.port}/1"
+    }
+  }
+
+  container {
+    name = "planet-stream"
+    image = "quay.io/americanredcross/osm-stats-planet-stream"
+    cpu = "0.5"
+    memory = "0.5"
+
+    environment_variables {
+      ALL_HASHTAGS = "true"
+      REDIS_URL = "redis://:${urlencode(azurerm_redis_cache.osm-stats.primary_access_key)}@${azurerm_redis_cache.osm-stats.hostname}:${azurerm_redis_cache.osm-stats.port}/1"
+      EH_CONNSTRING = "${azurerm_eventhub_namespace.osm-stats.default_primary_connection_string}"
+      EH_PATH = "${var.stream_path}"
+      FORGETTABLE_URL = "http://localhost:8080"
     }
   }
 }
@@ -107,6 +127,22 @@ resource "azurerm_postgresql_firewall_rule" "osm-stats" {
   server_name = "${azurerm_postgresql_server.osm-stats.name}"
   start_ip_address = "0.0.0.0"
   end_ip_address = "255.255.255.255"
+}
+
+resource "azurerm_eventhub_namespace" "osm-stats" {
+  name = "osm-stats"
+  location = "${azurerm_resource_group.osm-stats.location}"
+  resource_group_name = "${azurerm_resource_group.osm-stats.name}"
+  sku = "Standard"
+  capacity = 1
+}
+
+resource "azurerm_eventhub" "osm-stats" {
+  name                = "${var.stream_path}"
+  namespace_name      = "${azurerm_eventhub_namespace.osm-stats.name}"
+  resource_group_name = "${azurerm_resource_group.osm-stats.name}"
+  partition_count     = 2
+  message_retention   = 1
 }
 
 output "redis_url" {
