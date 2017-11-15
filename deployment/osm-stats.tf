@@ -42,7 +42,7 @@ resource "azurerm_container_group" "osm-stats-api" {
     name = "osm-stats-api"
     image = "quay.io/americanredcross/osm-stats-api"
     cpu = "0.5"
-    memory = "1.5"
+    memory = "0.5"
     port = "80"
 
     environment_variables {
@@ -57,7 +57,7 @@ resource "azurerm_container_group" "osm-stats-api" {
     name = "forgettable"
     image = "quay.io/americanredcross/osm-stats-forgettable"
     cpu = "0.5"
-    memory = "1.5"
+    memory = "0.5"
     port = "8080"
 
     environment_variables {
