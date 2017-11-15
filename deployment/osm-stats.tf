@@ -85,7 +85,7 @@ resource "azurerm_redis_cache" "osm-stats" {
   name = "osm-stats"
   location = "${azurerm_resource_group.osm-stats.location}"
   resource_group_name = "${azurerm_resource_group.osm-stats.name}"
-  capacity = 0
+  capacity = 1
   family = "C"
   sku_name = "Basic"
   enable_non_ssl_port = true
