@@ -54,7 +54,7 @@ function publish(obj) {
   var data = JSON.stringify(obj);
   var geo = toGeojson(obj.elements);
   geo.properties = obj.metadata;
-  log.debug('[kinesis obj metadata]:' + obj.metadata);
+  log.debug('[kinesis obj metadata]:', obj.metadata);
 
   // Only add if there are features
   if (geo.features.length) {
@@ -97,7 +97,7 @@ function publish(obj) {
         sink.write(data);
       }
     } else {
-      log.info('No metadata for ' + obj);
+      log.info('No metadata for ', obj);
     }
   }
 }
