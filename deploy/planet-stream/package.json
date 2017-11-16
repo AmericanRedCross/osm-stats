@@ -17,7 +17,7 @@
     "ioredis": "^1.15.0",
     "log": "^1.4.0",
     "osm-replication-streams": "^0.2.0",
-    "planet-stream": "github:mojodna/planet-stream#integration",
+    "planet-stream": "github:mojodna/planet-stream#v0.3.2+redis-url",
     "ramda": "^0.19.1",
     "request-promise": "^2.0.0",
     "shortid": "^2.2.4",
