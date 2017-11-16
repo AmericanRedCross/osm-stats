@@ -71,7 +71,7 @@ function publish(obj) {
   }
 
   if (process.env.PS_OUTPUT_DEBUG) {
-    log.debug(JSON.stringify(geo));
+    log.info(JSON.stringify(geo));
   } else {
     if (obj.metadata) {
       log.debug('About to add ' + obj.metadata.id);
