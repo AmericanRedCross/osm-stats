@@ -3,7 +3,7 @@ provider "azurerm" {
 
 variable "db_server_name" {
   type = "string"
-  default = "osm-stats-postgresql"
+  default = "osm-stats"
 }
 
 variable "db_name" {
