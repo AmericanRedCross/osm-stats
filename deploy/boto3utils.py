@@ -89,7 +89,7 @@ def create_function(name, zfile, lsize=512, timeout=10, update=False):
             subnets = [s['SubnetId'] for s in ec2.describe_subnets()['Subnets']]
             return l.create_function(
                 FunctionName=name,
-                Runtime='nodejs',
+                Runtime='nodejs6.10',
                 Role=role['Arn'],
                 Handler='examples/kinesis-consumer/index.handler',
                 Description='OSM Stats Worker',
