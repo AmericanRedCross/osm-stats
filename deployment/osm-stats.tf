@@ -145,6 +145,31 @@ resource "azurerm_eventhub" "osm-stats" {
   message_retention   = 1
 }
 
+resource "azurerm_cdn_profile" "osm-stats" {
+  name                = "osm-stats"
+  location            = "${azurerm_resource_group.osm-stats.location}"
+  resource_group_name = "${azurerm_resource_group.osm-stats.name}"
+  sku                 = "Standard_Verizon"
+}
+
+resource "azurerm_cdn_endpoint" "osm-stats" {
+  name                = "osm-stats-api"
+  profile_name        = "${azurerm_cdn_profile.osm-stats.name}"
+  location            = "${azurerm_resource_group.osm-stats.location}"
+  resource_group_name = "${azurerm_resource_group.osm-stats.name}"
+  querystring_caching_behaviour  = "UseQueryString"
+  content_types_to_compress = ["application/json"]
+  is_compression_enabled = true
+  # TODO in order for this to be enabled, the origin needs to have an HTTPS
+  # endpoint
+  is_https_allowed    = false
+
+  origin {
+    name      = "osm-stats-api"
+    host_name = "${azurerm_container_group.osm-stats-api.ip_address}"
+  }
+}
+
 output "redis_url" {
   value = "redis://:${urlencode(azurerm_redis_cache.osm-stats.primary_access_key)}@${azurerm_redis_cache.osm-stats.hostname}:${azurerm_redis_cache.osm-stats.port}/1"
 }
