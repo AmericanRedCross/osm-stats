@@ -100,15 +100,15 @@ resource "azurerm_postgresql_server" "osm-stats" {
   resource_group_name = "${azurerm_resource_group.osm-stats.name}"
 
   sku {
-    name = "PGSQLB50"
-    capacity = 50
-    tier = "Basic"
+    name = "PGSQLS800"
+    capacity = 800
+    tier = "Standard"
   }
 
   administrator_login = "${var.db_user}"
   administrator_login_password = "${random_string.db_password.result}"
   version = "9.6"
-  storage_mb = "51200"
+  storage_mb = "128000"
   # ssl_enforcement = "Enabled"
   ssl_enforcement = "Disabled"
 }
