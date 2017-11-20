@@ -54,6 +54,20 @@ resource "azurerm_container_group" "osm-stats-api" {
   }
 
   container {
+    name = "osm-stats-api-https"
+    image = "dweomer/stunnel"
+    cpu = "0.5"
+    memory = "0.5"
+    port = "443"
+
+    environment_variables {
+      STUNNEL_SERVICE="https"
+      STUNNEL_CONNECT="localhost:80"
+      STUNNEL_ACCEPT=443
+    }
+  }
+
+  container {
     name = "forgettable"
     image = "quay.io/americanredcross/osm-stats-forgettable"
     cpu = "0.5"
@@ -160,9 +174,7 @@ resource "azurerm_cdn_endpoint" "osm-stats" {
   querystring_caching_behaviour  = "UseQueryString"
   content_types_to_compress = ["application/json"]
   is_compression_enabled = true
-  # TODO in order for this to be enabled, the origin needs to have an HTTPS
-  # endpoint
-  is_https_allowed    = false
+  depends_on = ["azurerm_container_group.osm-stats-api"]
 
   origin {
     name      = "osm-stats-api"
