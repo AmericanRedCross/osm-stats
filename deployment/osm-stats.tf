@@ -36,9 +36,7 @@ resource "azurerm_container_group" "osm-stats-api" {
   resource_group_name = "${azurerm_resource_group.osm-stats.name}"
   ip_address_type = "public"
   os_type = "linux"
-  lifecycle {
-    create_before_destroy = true
-  }
+  depends_on = ["azurerm_redis_cache.osm-stats", "azurerm_postgresql_database.osm-stats", "azurerm_postgresql_firewall_rule.osm-stats", "azurerm_eventhub.osm-stats"]
 
   container {
     name = "osm-stats-api"
