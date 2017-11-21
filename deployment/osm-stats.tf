@@ -39,35 +39,6 @@ resource "azurerm_container_group" "osm-stats-api" {
   depends_on = ["azurerm_redis_cache.osm-stats", "azurerm_postgresql_database.osm-stats", "azurerm_postgresql_firewall_rule.osm-stats", "azurerm_eventhub.osm-stats"]
 
   container {
-    name = "osm-stats-api"
-    image = "quay.io/americanredcross/osm-stats-api"
-    cpu = "0.5"
-    memory = "0.5"
-    port = "80"
-
-    environment_variables {
-      PORT = "80"
-      DATABASE_URL = "postgresql://${var.db_user}%40${var.db_server_name}:${random_string.db_password.result}@${azurerm_postgresql_server.osm-stats.fqdn}/${var.db_name}"
-      FORGETTABLE_URL = "http://localhost:8080"
-      REDIS_URL = "redis://:${urlencode(azurerm_redis_cache.osm-stats.primary_access_key)}@${azurerm_redis_cache.osm-stats.hostname}:${azurerm_redis_cache.osm-stats.port}/1"
-    }
-  }
-
-  container {
-    name = "osm-stats-api-https"
-    image = "dweomer/stunnel"
-    cpu = "0.5"
-    memory = "0.5"
-    port = "443"
-
-    environment_variables {
-      STUNNEL_SERVICE="https"
-      STUNNEL_CONNECT="localhost:80"
-      STUNNEL_ACCEPT=443
-    }
-  }
-
-  container {
     name = "forgettable"
     image = "quay.io/americanredcross/osm-stats-forgettable"
     cpu = "0.5"
@@ -159,28 +130,11 @@ resource "azurerm_eventhub" "osm-stats" {
   message_retention   = 1
 }
 
-resource "azurerm_cdn_profile" "osm-stats" {
-  name                = "osm-stats"
-  location            = "${azurerm_resource_group.osm-stats.location}"
-  resource_group_name = "${azurerm_resource_group.osm-stats.name}"
-  sku                 = "Standard_Verizon"
-}
-
-resource "azurerm_cdn_endpoint" "osm-stats" {
-  name                = "osm-stats-api"
-  profile_name        = "${azurerm_cdn_profile.osm-stats.name}"
-  location            = "${azurerm_resource_group.osm-stats.location}"
-  resource_group_name = "${azurerm_resource_group.osm-stats.name}"
-  querystring_caching_behaviour  = "UseQueryString"
-  content_types_to_compress = ["application/json"]
-  is_compression_enabled = true
-  depends_on = ["azurerm_container_group.osm-stats-api"]
-
-  origin {
-    name      = "osm-stats-api"
-    host_name = "${azurerm_container_group.osm-stats-api.ip_address}"
-  }
-}
+# TODO configure App Service
+# requires Terraform support for Docker containers
+# https://github.com/terraform-providers/terraform-provider-azurerm/issues/580
+# https://www.terraform.io/docs/providers/azurerm/r/app_service.html
+# https://github.com/terraform-providers/terraform-provider-azurerm/blob/master/azurerm/resource_arm_app_service.go
 
 output "redis_url" {
   value = "redis://:${urlencode(azurerm_redis_cache.osm-stats.primary_access_key)}@${azurerm_redis_cache.osm-stats.hostname}:${azurerm_redis_cache.osm-stats.port}/1"
@@ -190,9 +144,6 @@ output "database_url" {
   value = "postgresql://${var.db_user}%40${var.db_server_name}:${random_string.db_password.result}@${azurerm_postgresql_server.osm-stats.fqdn}/${var.db_name}"
 }
 
-output "api_url" {
-  value = "http://${azurerm_container_group.osm-stats-api.ip_address}"
+output "forgettable_url" {
+  value = "http://${azurerm_container_group.osm-stats-api.ip_address}:8080"
 }
-
-# az container show --name osm-stats-api --resource-group osm-stats-api
-# az container logs --name osm-stats-api --resource-group osm-stats-api
