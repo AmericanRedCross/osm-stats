@@ -114,6 +114,7 @@ if (process.env.SIMULATION) {
   // Start planet-stream
   var diffs = require('planet-stream')({
     limit: process.env.LIMIT || 25,
+    pollFreq: 15e3,
     redisUrl: REDIS_URL
   });
 
