@@ -16,6 +16,11 @@ variable "db_user" {
   default = "osmstatsmm"
 }
 
+variable "forgettable_url" {
+  type = "string"
+  default = "http://osm-stats-forgettable.azurewebsites.net"
+}
+
 variable "stream_path" {
   type = "string"
   default = "osm-stats"
@@ -39,29 +44,18 @@ resource "azurerm_container_group" "osm-stats-api" {
   depends_on = ["azurerm_redis_cache.osm-stats", "azurerm_postgresql_database.osm-stats", "azurerm_postgresql_firewall_rule.osm-stats", "azurerm_eventhub.osm-stats"]
 
   container {
-    name = "forgettable"
-    image = "quay.io/americanredcross/osm-stats-forgettable"
-    cpu = "0.5"
-    memory = "0.5"
-    port = "8080"
-
-    environment_variables {
-      REDIS_URL = "redis://:${urlencode(azurerm_redis_cache.osm-stats.primary_access_key)}@${azurerm_redis_cache.osm-stats.hostname}:${azurerm_redis_cache.osm-stats.port}/1"
-    }
-  }
-
-  container {
     name = "planet-stream"
     image = "quay.io/americanredcross/osm-stats-planet-stream"
     cpu = "0.5"
     memory = "0.5"
+    port = "8080" # unbound but necessary
 
     environment_variables {
       ALL_HASHTAGS = "true"
       REDIS_URL = "redis://:${urlencode(azurerm_redis_cache.osm-stats.primary_access_key)}@${azurerm_redis_cache.osm-stats.hostname}:${azurerm_redis_cache.osm-stats.port}/1"
       EH_CONNSTRING = "${azurerm_eventhub_namespace.osm-stats.default_primary_connection_string}"
       EH_PATH = "${var.stream_path}"
-      FORGETTABLE_URL = "http://localhost:8080"
+      FORGETTABLE_URL = "${var.forgettable_url}"
     }
   }
 }
@@ -142,8 +136,4 @@ output "redis_url" {
 
 output "database_url" {
   value = "postgresql://${var.db_user}%40${var.db_server_name}:${random_string.db_password.result}@${azurerm_postgresql_server.osm-stats.fqdn}/${var.db_name}"
-}
-
-output "forgettable_url" {
-  value = "http://${azurerm_container_group.osm-stats-api.ip_address}:8080"
 }
