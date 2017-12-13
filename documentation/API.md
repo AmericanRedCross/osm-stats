@@ -292,4 +292,22 @@ This endpoint summarizes contribution statistics (counts and number of kilometer
 ...
 ]
 ```
+### date range queries
+Date ranges are supported on most endpoints To use it, add startdate=<ISO-formatted date/time> and/or enddate=<ISO-formatted date/time>.
+ISO-formatted date/times can be generated from JS using new Date().toISOString() and are parsed using new Date(input), so partial dates and times like 2017-10-10 and 2017-10-10T04:00 (as well as dates with UTC offsets) are valid.
 
+example query url:
+```html
+https://osmstats.redcross.org/stats/msft?startdate=2017-11-10T04:00&enddate=2017-12-10
+```
+
+```js
+{
+   "changesets":1546,
+   "users":232,
+   "roads":8097,
+   "buildings":8097,
+   "edits":8367,
+   "latest":"2017-12-09T20:41:21.000Z"
+}
+```
