@@ -1,6 +1,21 @@
 provider "azurerm" {
 }
 
+variable "api_name" {
+  type = "string"
+  default = "osm-stats-api"
+}
+
+variable "app_service_plan_name" {
+  type = "string"
+  default = "osm-stats"
+}
+
+variable "container_group_name" {
+  type = "string"
+  default = "osm-stats"
+}
+
 variable "db_server_name" {
   type = "string"
   default = "osm-stats"
@@ -8,17 +23,37 @@ variable "db_server_name" {
 
 variable "db_name" {
   type = "string"
-  default = "osmstatsmm"
+  default = "mm"
 }
 
 variable "db_user" {
   type = "string"
-  default = "osmstatsmm"
+  default = "mm"
 }
 
-variable "forgettable_url" {
+variable "forgettable_name" {
   type = "string"
-  default = "http://osm-stats-forgettable.azurewebsites.net"
+  default = "osm-stats-forgettable"
+}
+
+variable "functions_name" {
+  type = "string"
+  default = "osm-stats-functions"
+}
+
+variable "redis_server_name" {
+  type = "string"
+  default = "osm-stats"
+}
+
+variable "resource_group_name" {
+  type = "string"
+  default = "osm-stats"
+}
+
+variable "storage_name" {
+  type = "string"
+  default = "osmstats"
 }
 
 variable "stream_path" {
@@ -28,40 +63,40 @@ variable "stream_path" {
 
 resource "random_string" "db_password" {
   length = 16
+  special = false
 }
 
 resource "azurerm_resource_group" "osm-stats" {
-  name = "osm-stats"
+  name = "${var.resource_group_name}"
   location = "East US"
 }
 
-resource "azurerm_container_group" "osm-stats-api" {
-  name = "osm-stats-api"
+resource "azurerm_container_group" "osm-stats" {
+  # this is created within a container group rather than App Service because it
+  # should always be running and doesn't expose any ports
+  name = "${var.container_group_name}"
   location = "${azurerm_resource_group.osm-stats.location}"
   resource_group_name = "${azurerm_resource_group.osm-stats.name}"
   ip_address_type = "public"
   os_type = "linux"
-  depends_on = ["azurerm_redis_cache.osm-stats", "azurerm_postgresql_database.osm-stats", "azurerm_postgresql_firewall_rule.osm-stats", "azurerm_eventhub.osm-stats"]
+  depends_on = ["azurerm_postgresql_database.osm-stats", "azurerm_postgresql_firewall_rule.osm-stats"]
 
   container {
-    name = "planet-stream"
-    image = "quay.io/americanredcross/osm-stats-planet-stream"
-    cpu = "0.5"
-    memory = "0.5"
+    name = "osm-changes"
+    image = "quay.io/americanredcross/osm-stats-workers:refactor"
+    cpu = "1"
+    memory = "1.5"
     port = "8080" # unbound but necessary
 
     environment_variables {
-      ALL_HASHTAGS = "true"
-      REDIS_URL = "redis://:${urlencode(azurerm_redis_cache.osm-stats.primary_access_key)}@${azurerm_redis_cache.osm-stats.hostname}:${azurerm_redis_cache.osm-stats.port}/1"
-      EH_CONNSTRING = "${azurerm_eventhub_namespace.osm-stats.default_primary_connection_string}"
-      EH_PATH = "${var.stream_path}"
-      FORGETTABLE_URL = "${var.forgettable_url}"
+      DATABASE_URL = "postgresql://${var.db_user}%40${var.db_server_name}:${random_string.db_password.result}@${azurerm_postgresql_server.osm-stats.fqdn}/${var.db_name}"
+      OVERPASS_URL="http://export.hotosm.org:6080"
     }
   }
 }
 
 resource "azurerm_redis_cache" "osm-stats" {
-  name = "osm-stats"
+  name = "${var.redis_server_name}"
   location = "${azurerm_resource_group.osm-stats.location}"
   resource_group_name = "${azurerm_resource_group.osm-stats.name}"
   capacity = 1
@@ -108,27 +143,341 @@ resource "azurerm_postgresql_firewall_rule" "osm-stats" {
   end_ip_address = "255.255.255.255"
 }
 
-resource "azurerm_eventhub_namespace" "osm-stats" {
-  name = "osm-stats"
+resource "azurerm_app_service_plan" "osm-stats" {
+  name = "${var.app_service_plan_name}"
   location = "${azurerm_resource_group.osm-stats.location}"
   resource_group_name = "${azurerm_resource_group.osm-stats.name}"
-  sku = "Standard"
-  capacity = 1
+  kind = "Linux"
+
+  sku {
+    tier = "Basic"
+    size = "B1"
+  }
+
+  properties {
+    per_site_scaling = true
+    reserved = true
+  }
 }
 
-resource "azurerm_eventhub" "osm-stats" {
-  name                = "${var.stream_path}"
-  namespace_name      = "${azurerm_eventhub_namespace.osm-stats.name}"
-  resource_group_name = "${azurerm_resource_group.osm-stats.name}"
-  partition_count     = 2
-  message_retention   = 1
+resource "azurerm_storage_account" "osm-stats" {
+  name                     = "${var.storage_name}"
+  resource_group_name      = "${azurerm_resource_group.osm-stats.name}"
+  location                 = "${azurerm_resource_group.osm-stats.location}"
+  account_tier             = "Standard"
+  account_replication_type = "LRS"
 }
 
-# TODO configure App Service
-# requires Terraform support for Docker containers
+# Configure a Web Apps for Containers instance for forgettable
+# This uses a template deployment due to:
 # https://github.com/terraform-providers/terraform-provider-azurerm/issues/580
-# https://www.terraform.io/docs/providers/azurerm/r/app_service.html
-# https://github.com/terraform-providers/terraform-provider-azurerm/blob/master/azurerm/resource_arm_app_service.go
+resource "azurerm_template_deployment" "forgettable" {
+  name = "osm-stats-forgettable-template"
+  resource_group_name = "${azurerm_resource_group.osm-stats.name}"
+
+  template_body = <<DEPLOY
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "app_service_plan_id": {
+      "type": "string",
+      "metadata": {
+        "description": "App Service Plan ID"
+      }
+    },
+    "name": {
+      "type": "string",
+      "metadata": {
+        "description": "App Name"
+      }
+    },
+    "image": {
+      "type": "string",
+      "metadata": {
+        "description": "Docker image"
+      }
+    },
+    "redis_url": {
+      "type": "string",
+      "metadata": {
+        "description": "Redis URL"
+      }
+    }
+  },
+  "resources": [
+    {
+      "apiVersion": "2016-08-01",
+      "kind": "app,linux,container",
+      "name": "[parameters('name')]",
+      "type": "Microsoft.Web/sites",
+      "properties": {
+        "clientAffinityEnabled": false,
+        "name": "[parameters('name')]",
+        "siteConfig": {
+          "alwaysOn": true,
+          "appSettings": [
+            {
+              "name": "DOCKER_ENABLE_CI",
+              "value": "true"
+            },
+            {
+              "name": "REDIS_URL",
+              "value": "[parameters('redis_url')]"
+            },
+            {
+              "name": "WEBSITES_ENABLE_APP_SERVICE_STORAGE",
+              "value": "false"
+            }
+          ],
+          "linuxFxVersion": "[concat('DOCKER|', parameters('image'))]"
+        },
+        "serverFarmId": "[parameters('app_service_plan_id')]"
+      },
+      "location": "[resourceGroup().location]"
+    }
+  ]
+}
+DEPLOY
+
+  parameters {
+    name = "${var.forgettable_name}"
+    image = "quay.io/americanredcross/osm-stats-forgettable"
+    app_service_plan_id = "${azurerm_app_service_plan.osm-stats.id}"
+    redis_url = "redis://:${urlencode(azurerm_redis_cache.osm-stats.primary_access_key)}@${azurerm_redis_cache.osm-stats.hostname}:${azurerm_redis_cache.osm-stats.port}/1"
+  }
+
+  deployment_mode = "Incremental"
+}
+
+# Configure a Web Apps for Containers instance for osm-stats-api
+# This uses a template deployment due to:
+# https://github.com/terraform-providers/terraform-provider-azurerm/issues/580
+resource "azurerm_template_deployment" "osm-stats-api" {
+  name = "osm-stats-api-template"
+  resource_group_name = "${azurerm_resource_group.osm-stats.name}"
+
+  template_body = <<DEPLOY
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "app_service_plan_id": {
+      "type": "string",
+      "metadata": {
+        "description": "App Service Plan ID"
+      }
+    },
+    "database_url": {
+      "type": "string",
+      "metadata": {
+        "description": "Database URL"
+      }
+    },
+    "forgettable_url": {
+      "type": "string",
+      "metadata": {
+        "description": "Forgettable URL"
+      }
+    },
+    "name": {
+      "type": "string",
+      "metadata": {
+        "description": "App Name"
+      }
+    },
+    "image": {
+      "type": "string",
+      "metadata": {
+        "description": "Docker image"
+      }
+    },
+    "redis_url": {
+      "type": "string",
+      "metadata": {
+        "description": "Redis URL"
+      }
+    }
+  },
+  "resources": [
+    {
+      "apiVersion": "2016-08-01",
+      "kind": "app,linux,container",
+      "name": "[parameters('name')]",
+      "type": "Microsoft.Web/sites",
+      "properties": {
+        "clientAffinityEnabled": false,
+        "name": "[parameters('name')]",
+        "siteConfig": {
+          "alwaysOn": true,
+          "appSettings": [
+            {
+              "name": "DATABASE_URL",
+              "value": "[parameters('database_url')]"
+            },
+            {
+              "name": "DOCKER_ENABLE_CI",
+              "value": "true"
+            },
+            {
+              "name": "FORGETTABLE_URL",
+              "value": "[parameters('forgettable_url')]"
+            },
+            {
+              "name": "REDIS_URL",
+              "value": "[parameters('redis_url')]"
+            },
+            {
+              "name": "WEBSITES_ENABLE_APP_SERVICE_STORAGE",
+              "value": "false"
+            }
+          ],
+          "linuxFxVersion": "[concat('DOCKER|', parameters('image'))]"
+        },
+        "serverFarmId": "[parameters('app_service_plan_id')]"
+      },
+      "location": "[resourceGroup().location]"
+    }
+  ]
+}
+DEPLOY
+
+  parameters {
+    name = "${var.api_name}"
+    image = "quay.io/americanredcross/osm-stats-api"
+    app_service_plan_id = "${azurerm_app_service_plan.osm-stats.id}"
+    database_url = "postgresql://${var.db_user}%40${var.db_server_name}:${random_string.db_password.result}@${azurerm_postgresql_server.osm-stats.fqdn}/${var.db_name}"
+    forgettable_url = "http://${var.forgettable_name}.azurewebsites.net"
+    redis_url = "redis://:${urlencode(azurerm_redis_cache.osm-stats.primary_access_key)}@${azurerm_redis_cache.osm-stats.hostname}:${azurerm_redis_cache.osm-stats.port}/1"
+  }
+
+  deployment_mode = "Incremental"
+}
+
+# Create a Web Apps for Containers instance for Linux-based Azure Functions
+# Terraform does not yet support azurerm_function_app (and may not work with Linux instances)
+resource "azurerm_template_deployment" "functions" {
+  name = "osm-stats-functions-template"
+  resource_group_name = "${azurerm_resource_group.osm-stats.name}"
+
+  template_body = <<DEPLOY
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "app_service_plan_id": {
+      "type": "string",
+      "metadata": {
+        "description": "App Service Plan ID"
+      }
+    },
+    "database_url": {
+      "type": "string",
+      "metadata": {
+        "description": "Database URL"
+      }
+    },
+    "git_branch": {
+      "type": "string",
+      "metadata": {
+        "description": "Git branch"
+      }
+    },
+    "git_url": {
+      "type": "string",
+      "metadata": {
+        "description": "Git repository URL"
+      }
+    },
+    "name": {
+      "type": "string",
+      "metadata": {
+        "description": "App Name"
+      }
+    },
+    "image": {
+      "type": "string",
+      "metadata": {
+        "description": "Docker image"
+      }
+    },
+    "storage_name": {
+      "type": "string",
+      "metadata": {
+        "description": "Storage account name"
+      }
+    }
+  },
+  "resources": [
+    {
+      "apiVersion": "2016-08-01",
+      "kind": "functionapp,linux",
+      "name": "[parameters('name')]",
+      "type": "Microsoft.Web/sites",
+      "properties": {
+        "clientAffinityEnabled": false,
+        "name": "[parameters('name')]",
+        "siteConfig": {
+          "alwaysOn": true,
+          "appSettings": [
+            {
+              "name": "AzureWebJobsDashboard",
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=',parameters('storage_name'),';AccountKey=',listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('storage_name')), '2015-05-01-preview').key1)]"
+            },
+            {
+              "name": "AzureWebJobsStorage",
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=',parameters('storage_name'),';AccountKey=',listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('storage_name')), '2015-05-01-preview').key1)]"
+            },
+            {
+              "name": "DATABASE_URL",
+              "value": "[parameters('database_url')]"
+            },
+            {
+              "name": "FUNCTIONS_EXTENSION_VERSION",
+              "value": "beta"
+            },
+            {
+              "name": "WEBSITE_NODE_DEFAULT_VERSION",
+              "value": "6.5.0"
+            }
+          ],
+          "linuxFxVersion": "[concat('DOCKER|', parameters('image'))]"
+        },
+        "serverFarmId": "[parameters('app_service_plan_id')]"
+      },
+      "location": "[resourceGroup().location]",
+      "resources": [
+        {
+          "apiVersion": "2015-08-01",
+          "name": "web",
+          "type": "sourcecontrols",
+          "dependsOn": [
+            "[resourceId('Microsoft.Web/sites/', parameters('name'))]"
+          ],
+          "properties": {
+            "RepoUrl": "[parameters('git_url')]",
+            "branch": "[parameters('git_branch')]"
+          }
+        }
+      ]
+    }
+  ]
+}
+DEPLOY
+
+  parameters {
+    name = "${var.functions_name}"
+    image = "microsoft/azure-functions-runtime:2.0.0-jessie"
+    app_service_plan_id = "${azurerm_app_service_plan.osm-stats.id}"
+    database_url = "postgresql://${var.db_user}%40${var.db_server_name}:${random_string.db_password.result}@${azurerm_postgresql_server.osm-stats.fqdn}/${var.db_name}"
+    # source integration template fragments from https://docs.microsoft.com/en-us/azure/azure-functions/functions-infrastructure-as-code#create-a-function-app-1
+    git_url = "https://github.com/americanredcross/osm-stats-workers.git"
+    git_branch = "azure-next"
+    storage_name = "${azurerm_storage_account.osm-stats.name}"
+  }
+
+  deployment_mode = "Incremental"
+}
 
 output "redis_url" {
   value = "redis://:${urlencode(azurerm_redis_cache.osm-stats.primary_access_key)}@${azurerm_redis_cache.osm-stats.hostname}:${azurerm_redis_cache.osm-stats.port}/1"

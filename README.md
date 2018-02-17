@@ -51,3 +51,40 @@ npm run dbinit
 from the project's root directory.
 
 
+# Azure
+
+First, install and configure [terraform](https://www.terraform.io/) according to
+https://docs.microsoft.com/en-us/azure/virtual-machines/linux/terraform-install-configure.
+
+Next, log in and provision resources defined in `deployment/osm-stats.tf`. If
+you wish to override any variables defined therein, create
+`deployment/terraform.tfvars` and set `variable = "value"`.
+
+```bash
+az login
+
+# import an existing resource group
+terraform import \
+  azurerm_resource_group.osm-stats \
+  /subscriptions/<subscription id>/resourcegroups/<resource group name>
+
+# generate an execution plan for new resources
+terraform plan
+
+# generate / update necessary resources
+terraform apply
+
+# initialize Postgres from americanredcross/osm-stats-workers
+cd ../osm-stats-workers
+DATABASE_URL=<redacted> make db/all
+```
+
+To debug the `osm-changes` container (within the `osm-stats` container group):
+
+```bash
+az container logs \
+  --name osm-stats \
+  --container-name osm-changes \
+  --resource-group <redacted> \
+  --follow
+```
