@@ -1,4 +1,5 @@
 provider "azurerm" {
+  skip_credentials_validation = true
 }
 
 variable "api_name" {
@@ -63,7 +64,7 @@ variable "stream_path" {
 
 resource "random_string" "db_password" {
   length = 16
-  special = false
+  override_special = "#%&*()-_=+[]{}<>:?"
 }
 
 resource "azurerm_resource_group" "osm-stats" {
