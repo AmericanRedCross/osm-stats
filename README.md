@@ -63,6 +63,11 @@ you wish to override any variables defined therein, create
 ```bash
 az login
 
+az account show --query "{subscriptionId:id, tenantId:tenantId}"
+
+export ARM_SUBSCRIPTION_ID=<subscription id>
+export ARM_TENANT_ID=<tenant id>
+
 # import an existing resource group
 terraform import \
   azurerm_resource_group.osm-stats \
