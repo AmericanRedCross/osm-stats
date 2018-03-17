@@ -167,6 +167,8 @@ resource "azurerm_storage_account" "osm-stats" {
   location                 = "${azurerm_resource_group.osm-stats.location}"
   account_tier             = "Standard"
   account_replication_type = "LRS"
+  enable_blob_encryption   = true
+  enable_file_encryption   = true
 }
 
 # Configure a Web Apps for Containers instance for forgettable
