@@ -64,7 +64,7 @@ variable "stream_path" {
 
 resource "random_string" "db_password" {
   length = 16
-  override_special = "#%&*()-_=+[]{}<>:?"
+  override_special = "*()-_=+[]{}<>"
 }
 
 resource "azurerm_resource_group" "osm-stats" {
