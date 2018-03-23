@@ -347,7 +347,7 @@ DEPLOY
 
   parameters {
     name = "${var.api_name}"
-    image = "quay.io/americanredcross/osm-stats-api"
+    image = "quay.io/americanredcross/osm-stats-api:next"
     app_service_plan_id = "${azurerm_app_service_plan.osm-stats.id}"
     database_url = "postgresql://${var.db_user}%40${var.db_server_name}:${random_string.db_password.result}@${azurerm_postgresql_server.osm-stats.fqdn}/${var.db_name}"
     forgettable_url = "http://${var.forgettable_name}.azurewebsites.net"
