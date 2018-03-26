@@ -180,15 +180,16 @@ resource "azurerm_postgresql_server" "osm-stats" {
   resource_group_name = "${azurerm_resource_group.osm-stats.name}"
 
   sku {
-    name = "PGSQLS800"
-    capacity = 800
+    name = "PGSQLS400"
+    capacity = 400
     tier = "Standard"
   }
 
   administrator_login = "${var.db_user}"
   administrator_login_password = "${random_string.db_password.result}"
   version = "9.6"
-  storage_mb = "128000"
+  # storage_mb = "1024000"
+  storage_mb = "1048576" # this matches prod but isn't valid according to the current terraform release
   # ssl_enforcement = "Enabled"
   ssl_enforcement = "Disabled"
 }
