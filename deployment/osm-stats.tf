@@ -62,11 +62,6 @@ variable "stream_path" {
   default = "osm-stats"
 }
 
-variable "worker_name" {
-  type = "string"
-  default = "osm-stats-worker"
-}
-
 resource "random_string" "db_password" {
   length = 16
   override_special = "*()-_=+[]{}<>"
@@ -77,88 +72,28 @@ resource "azurerm_resource_group" "osm-stats" {
   location = "East US"
 }
 
-# Create a Web Apps for Containers instance for osm-stats-workers
-# Terraform does not yet support azurerm_function_app (and may not work with Linux instances)
-resource "azurerm_template_deployment" "worker" {
-  name = "osm-stats-worker-template"
+resource "azurerm_container_group" "osm-stats" {
+  # this is created within a container group rather than App Service because it
+  # should always be running and doesn't expose any ports
+  name = "${var.container_group_name}"
+  location = "${azurerm_resource_group.osm-stats.location}"
   resource_group_name = "${azurerm_resource_group.osm-stats.name}"
+  ip_address_type = "public"
+  os_type = "linux"
+  depends_on = ["azurerm_postgresql_database.osm-stats", "azurerm_postgresql_firewall_rule.osm-stats"]
 
-  template_body = <<DEPLOY
-{
-  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
-  "contentVersion": "1.0.0.0",
-  "parameters": {
-    "app_service_plan_id": {
-      "type": "string",
-      "metadata": {
-        "description": "App Service Plan ID"
-      }
-    },
-    "database_url": {
-      "type": "string",
-      "metadata": {
-        "description": "Database URL"
-      }
-    },
-    "name": {
-      "type": "string",
-      "metadata": {
-        "description": "App Name"
-      }
-    },
-    "overpass_url": {
-      "type": "string",
-      "metadata": {
-        "description": "Overpass URL"
-      }
-    },
-    "image": {
-      "type": "string",
-      "metadata": {
-        "description": "Docker image"
-      }
-    }
-  },
-  "resources": [
-    {
-      "apiVersion": "2016-08-01",
-      "kind": "app,linux,container",
-      "name": "[parameters('name')]",
-      "type": "Microsoft.Web/sites",
-      "properties": {
-        "clientAffinityEnabled": false,
-        "name": "[parameters('name')]",
-        "siteConfig": {
-          "alwaysOn": true,
-          "appSettings": [
-            {
-              "name": "DATABASE_URL",
-              "value": "[parameters('database_url')]"
-            },
-            {
-              "name": "OVERPASS_URL",
-              "value": "[parameters('overpass_url')]"
-            }
-          ],
-          "linuxFxVersion": "[concat('DOCKER|', parameters('image'))]"
-        },
-        "serverFarmId": "[parameters('app_service_plan_id')]"
-      },
-      "location": "[resourceGroup().location]"
-    }
-  ]
-}
-DEPLOY
-
-  parameters {
-    name = "${var.worker_name}"
+  container {
+    name = "osm-changes"
     image = "quay.io/americanredcross/osm-stats-workers"
-    app_service_plan_id = "${azurerm_app_service_plan.osm-stats.id}"
-    database_url = "postgresql://${var.db_user}%40${var.db_server_name}:${random_string.db_password.result}@${azurerm_postgresql_server.osm-stats.fqdn}/${var.db_name}"
-    overpass_url = "http://export.hotosm.org:6080"
-  }
+    cpu = "1"
+    memory = "1.5"
+    port = "8080" # unbound but necessary
 
-  deployment_mode = "Incremental"
+    environment_variables {
+      DATABASE_URL = "postgresql://${var.db_user}%40${var.db_server_name}:${random_string.db_password.result}@${azurerm_postgresql_server.osm-stats.fqdn}/${var.db_name}"
+      OVERPASS_URL="http://export.hotosm.org:6080"
+    }
+  }
 }
 
 resource "azurerm_redis_cache" "osm-stats" {
@@ -218,7 +153,7 @@ resource "azurerm_app_service_plan" "osm-stats" {
 
   sku {
     tier = "Basic"
-    size = "B2"
+    size = "B1"
   }
 
   properties {
