@@ -37,11 +37,6 @@ variable "forgettable_name" {
   default = "osm-stats-forgettable"
 }
 
-variable "functions_name" {
-  type = "string"
-  default = "osm-stats-functions"
-}
-
 variable "redis_server_name" {
   type = "string"
   default = "osm-stats"
@@ -93,6 +88,20 @@ resource "azurerm_container_group" "osm-stats" {
       DATABASE_URL = "postgresql://${var.db_user}%40${var.db_server_name}:${random_string.db_password.result}@${azurerm_postgresql_server.osm-stats.fqdn}/${var.db_name}"
       OVERPASS_URL="http://export.hotosm.org:6080"
     }
+  }
+
+  container {
+    name = "housekeeping"
+    image = "quay.io/americanredcross/osm-stats-workers"
+    cpu = "0.5"
+    memory = "0.5"
+    port = "8081" # unbound but necessary
+
+    environment_variables {
+      DATABASE_URL = "postgresql://${var.db_user}%40${var.db_server_name}:${random_string.db_password.result}@${azurerm_postgresql_server.osm-stats.fqdn}/${var.db_name}"
+    }
+
+    command = "bin/housekeeping-loop.sh"
   }
 }
 
@@ -353,131 +362,6 @@ DEPLOY
     database_url = "postgresql://${var.db_user}%40${var.db_server_name}:${random_string.db_password.result}@${azurerm_postgresql_server.osm-stats.fqdn}/${var.db_name}"
     forgettable_url = "http://${var.forgettable_name}.azurewebsites.net"
     redis_url = "redis://:${urlencode(azurerm_redis_cache.osm-stats.primary_access_key)}@${azurerm_redis_cache.osm-stats.hostname}:${azurerm_redis_cache.osm-stats.port}/1"
-  }
-
-  deployment_mode = "Incremental"
-}
-
-# Create a Web Apps for Containers instance for Linux-based Azure Functions
-# Terraform does not yet support azurerm_function_app (and may not work with Linux instances)
-resource "azurerm_template_deployment" "functions" {
-  name = "osm-stats-functions-template"
-  resource_group_name = "${azurerm_resource_group.osm-stats.name}"
-
-  template_body = <<DEPLOY
-{
-  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
-  "contentVersion": "1.0.0.0",
-  "parameters": {
-    "app_service_plan_id": {
-      "type": "string",
-      "metadata": {
-        "description": "App Service Plan ID"
-      }
-    },
-    "database_url": {
-      "type": "string",
-      "metadata": {
-        "description": "Database URL"
-      }
-    },
-    "git_branch": {
-      "type": "string",
-      "metadata": {
-        "description": "Git branch"
-      }
-    },
-    "git_url": {
-      "type": "string",
-      "metadata": {
-        "description": "Git repository URL"
-      }
-    },
-    "name": {
-      "type": "string",
-      "metadata": {
-        "description": "App Name"
-      }
-    },
-    "image": {
-      "type": "string",
-      "metadata": {
-        "description": "Docker image"
-      }
-    },
-    "storage_name": {
-      "type": "string",
-      "metadata": {
-        "description": "Storage account name"
-      }
-    }
-  },
-  "resources": [
-    {
-      "apiVersion": "2016-08-01",
-      "kind": "functionapp,linux",
-      "name": "[parameters('name')]",
-      "type": "Microsoft.Web/sites",
-      "properties": {
-        "clientAffinityEnabled": false,
-        "name": "[parameters('name')]",
-        "siteConfig": {
-          "alwaysOn": true,
-          "appSettings": [
-            {
-              "name": "AzureWebJobsDashboard",
-              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=',parameters('storage_name'),';AccountKey=',listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('storage_name')), '2015-05-01-preview').key1)]"
-            },
-            {
-              "name": "AzureWebJobsStorage",
-              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=',parameters('storage_name'),';AccountKey=',listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('storage_name')), '2015-05-01-preview').key1)]"
-            },
-            {
-              "name": "DATABASE_URL",
-              "value": "[parameters('database_url')]"
-            },
-            {
-              "name": "FUNCTIONS_EXTENSION_VERSION",
-              "value": "beta"
-            },
-            {
-              "name": "WEBSITE_NODE_DEFAULT_VERSION",
-              "value": "6.5.0"
-            }
-          ],
-          "linuxFxVersion": "[concat('DOCKER|', parameters('image'))]"
-        },
-        "serverFarmId": "[parameters('app_service_plan_id')]"
-      },
-      "location": "[resourceGroup().location]",
-      "resources": [
-        {
-          "apiVersion": "2015-08-01",
-          "name": "web",
-          "type": "sourcecontrols",
-          "dependsOn": [
-            "[resourceId('Microsoft.Web/sites/', parameters('name'))]"
-          ],
-          "properties": {
-            "RepoUrl": "[parameters('git_url')]",
-            "branch": "[parameters('git_branch')]"
-          }
-        }
-      ]
-    }
-  ]
-}
-DEPLOY
-
-  parameters {
-    name = "${var.functions_name}"
-    image = "microsoft/azure-functions-runtime:2.0.0-jessie"
-    app_service_plan_id = "${azurerm_app_service_plan.osm-stats.id}"
-    database_url = "postgresql://${var.db_user}%40${var.db_server_name}:${random_string.db_password.result}@${azurerm_postgresql_server.osm-stats.fqdn}/${var.db_name}"
-    # source integration template fragments from https://docs.microsoft.com/en-us/azure/azure-functions/functions-infrastructure-as-code#create-a-function-app-1
-    git_url = "https://github.com/americanredcross/osm-stats-workers.git"
-    git_branch = "azure-next"
-    storage_name = "${azurerm_storage_account.osm-stats.name}"
   }
 
   deployment_mode = "Incremental"
