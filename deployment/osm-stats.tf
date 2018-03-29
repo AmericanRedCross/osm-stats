@@ -47,11 +47,6 @@ variable "resource_group_name" {
   default = "osm-stats"
 }
 
-variable "storage_name" {
-  type = "string"
-  default = "osmstats"
-}
-
 variable "stream_path" {
   type = "string"
   default = "osm-stats"
@@ -169,16 +164,6 @@ resource "azurerm_app_service_plan" "osm-stats" {
     per_site_scaling = true
     reserved = true
   }
-}
-
-resource "azurerm_storage_account" "osm-stats" {
-  name                     = "${var.storage_name}"
-  resource_group_name      = "${azurerm_resource_group.osm-stats.name}"
-  location                 = "${azurerm_resource_group.osm-stats.location}"
-  account_tier             = "Standard"
-  account_replication_type = "LRS"
-  enable_blob_encryption   = true
-  enable_file_encryption   = true
 }
 
 # Configure a Web Apps for Containers instance for forgettable
