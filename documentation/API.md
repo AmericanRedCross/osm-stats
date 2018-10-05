@@ -1,6 +1,6 @@
 ## OSM-Stats Missing Maps API
 
-The base MissingMaps API endpoint is located at http://osmstats.redcross.org/
+The base MissingMaps API endpoint is located at http://osm-stats-production-api.azurewebsites.net
 
 ### /stats/{hashtag?} endpoint
 The `stats` endpoint serves select total statistics for all tracked users, including km of roads, number of building edits, number of total edits, number of changesets, and the timestamp of the latest edit for a hashtag. If a hashtag is not provided as a parameter (i.e, the URL is `/stats/`), the summary is calculated for all hashtags. This endpoint is used to populate the aggregate statistics sections of Missing Maps' [main landing page](http://www.missingmaps.org/) as well as its partner pages. A successful response is formatted as such:
