@@ -1,6 +1,6 @@
 ## OSM-Stats Missing Maps API
 
-The base MissingMaps API endpoint is located at http://osmstats.redcross.org/
+The base MissingMaps API endpoint is located at http://osm-stats-production-api.azurewebsites.net
 
 ### /stats/{hashtag?} endpoint
 The `stats` endpoint serves select total statistics for all tracked users, including km of roads, number of building edits, number of total edits, number of changesets, and the timestamp of the latest edit for a hashtag. If a hashtag is not provided as a parameter (i.e, the URL is `/stats/`), the summary is calculated for all hashtags. This endpoint is used to populate the aggregate statistics sections of Missing Maps' [main landing page](http://www.missingmaps.org/) as well as its partner pages. A successful response is formatted as such:
@@ -298,16 +298,20 @@ ISO-formatted date/times can be generated from JS using new Date().toISOString()
 
 example query url:
 ```html
-https://osmstats.redcross.org/stats/msft?startdate=2017-11-10T04:00&enddate=2017-12-10
+https://osm-stats-production-api.azurewebsites.net/reports/msft?startdate=2017-10-01T04:00&enddate=2017-11-01
 ```
 
 ```js
 {
-   "changesets":1546,
-   "users":232,
-   "roads":8097,
-   "buildings":8097,
-   "edits":8367,
-   "latest":"2017-12-09T20:41:21.000Z"
+  "Hashtag": "msft",
+  "Roads Added": 1506,
+  "Roads Modified": 2277,
+  "Roads Added (km)": 243.29,
+  "Roads Modified (km)": 15.02,
+  "Buildings Added": 98186,
+  "Buildings Modified": 5564,
+  "Waterways Added": 1506,
+  "Waterways Added (km)": 137.39,
+  "POIs Added": 103
 }
 ```
