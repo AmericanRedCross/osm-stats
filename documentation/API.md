@@ -298,7 +298,7 @@ ISO-formatted date/times can be generated from JS using new Date().toISOString()
 
 example query url:
 ```html
-https://osm-stats-production-api.azurewebsites.net/reports/msft?startdate=2017-10-01&enddate=2017-11-01
+https://osm-stats-production-api.azurewebsites.net/reports/msft?startdate=2017-10-01T04:00&enddate=2017-11-01
 ```
 
 ```js
