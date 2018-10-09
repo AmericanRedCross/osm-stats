@@ -298,16 +298,20 @@ ISO-formatted date/times can be generated from JS using new Date().toISOString()
 
 example query url:
 ```html
-https://osmstats.redcross.org/stats/msft?startdate=2017-11-10T04:00&enddate=2017-12-10
+https://osm-stats-production-api.azurewebsites.net/reports/msft?startdate=2017-10-01&enddate=2017-11-01
 ```
 
 ```js
 {
-   "changesets":1546,
-   "users":232,
-   "roads":8097,
-   "buildings":8097,
-   "edits":8367,
-   "latest":"2017-12-09T20:41:21.000Z"
+  "Hashtag": "msft",
+  "Roads Added": 1506,
+  "Roads Modified": 2277,
+  "Roads Added (km)": 243.29,
+  "Roads Modified (km)": 15.02,
+  "Buildings Added": 98186,
+  "Buildings Modified": 5564,
+  "Waterways Added": 1506,
+  "Waterways Added (km)": 137.39,
+  "POIs Added": 103
 }
 ```
