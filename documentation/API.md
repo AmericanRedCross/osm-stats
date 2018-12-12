@@ -292,8 +292,8 @@ This endpoint summarizes contribution statistics (counts and number of kilometer
 ...
 ]
 ```
-### date range queries
-Date ranges are supported on most endpoints To use it, add startdate=<ISO-formatted date/time> and/or enddate=<ISO-formatted date/time>.
+### Reports
+It is possible to get all the edits summarized by hashtag for a given data range. Hashtags should be comma delimited in the url in the following format. To use dates, add startdate=<ISO-formatted date/time> and/or enddate=<ISO-formatted date/time>.
 ISO-formatted date/times can be generated from JS using new Date().toISOString() and are parsed using new Date(input), so partial dates and times like 2017-10-10 and 2017-10-10T04:00 (as well as dates with UTC offsets) are valid.
 
 example query url:
