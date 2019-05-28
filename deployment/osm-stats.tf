@@ -73,8 +73,8 @@ resource "azurerm_container_group" "osm-stats" {
   name = "${var.container_group_name}"
   location = "${azurerm_resource_group.osm-stats.location}"
   resource_group_name = "${azurerm_resource_group.osm-stats.name}"
-  ip_address_type = "public"
-  os_type = "linux"
+  ip_address_type = "Public"
+  os_type = "Linux"
   depends_on = ["azurerm_postgresql_database.osm-stats", "azurerm_postgresql_firewall_rule.osm-stats"]
 
   container {
@@ -84,7 +84,11 @@ resource "azurerm_container_group" "osm-stats" {
     memory = "1.5"
     port = "8080" # unbound but necessary
 
-    environment_variables {
+    ports {
+      port = 8080 # unbound but required
+    }
+
+    environment_variables = {
       DATABASE_URL = "postgresql://${var.db_user}%40${var.db_server_name}:${random_string.db_password.result}@${azurerm_postgresql_server.osm-stats.fqdn}/${var.db_name}"
       OVERPASS_URL="http://export.hotosm.org:6080"
     }
@@ -95,19 +99,23 @@ resource "azurerm_container_group" "osm-stats" {
     image = "quay.io/americanredcross/osm-stats-workers"
     cpu = "0.5"
     memory = "0.5"
-    port = "8081" # unbound but necessary
-
-    environment_variables {
-      DATABASE_URL = "postgresql://${var.db_user}%40${var.db_server_name}:${random_string.db_password.result}@${azurerm_postgresql_server.osm-stats.fqdn}/${var.db_name}"
+    ports {
+      port = 8081 # unbound but required
     }
 
-    command = "bin/housekeeping-loop.sh"
+    environment_variables = {
+      DATABASE_URL = "postgresql://${var.db_user}%40${var.db_server_name}:${random_string.db_password.result}@${azurerm_postgresql_server.osm-stats.fqdn}/${var.db_name}"
+      SERIAL = "2019052800"
+    }
+
+    commands = ["bin/housekeeping-loop.sh"]
   }
 }
 
 resource "azurerm_redis_cache" "osm-stats" {
   name = "${var.redis_server_name}"
   location = "${azurerm_resource_group.osm-stats.location}"
+  minimum_tls_version = "1.0"
   resource_group_name = "${azurerm_resource_group.osm-stats.name}"
   capacity = 1
   family = "C"
@@ -124,16 +132,22 @@ resource "azurerm_postgresql_server" "osm-stats" {
   resource_group_name = "${azurerm_resource_group.osm-stats.name}"
 
   sku {
-    name = "PGSQLS400"
-    capacity = 400
-    tier = "Standard"
+    name = "GP_Gen5_8"
+    capacity = 8
+    tier = "GeneralPurpose"
+    family = "Gen5"
+  }
+
+  storage_profile {
+    storage_mb = "1048576"
+    backup_retention_days = 35
+    geo_redundant_backup = "Enabled"
   }
 
   administrator_login = "${var.db_user}"
   administrator_login_password = "${random_string.db_password.result}"
   version = "9.6"
   # storage_mb = "1024000"
-  storage_mb = "1048576" # this matches prod but isn't valid according to the current terraform release
   # ssl_enforcement = "Enabled"
   ssl_enforcement = "Disabled"
 }
@@ -159,15 +173,12 @@ resource "azurerm_app_service_plan" "osm-stats" {
   location = "${azurerm_resource_group.osm-stats.location}"
   resource_group_name = "${azurerm_resource_group.osm-stats.name}"
   kind = "Linux"
+  reserved = true
+  per_site_scaling = true
 
   sku {
     tier = "Basic"
     size = "B1"
-  }
-
-  properties {
-    per_site_scaling = true
-    reserved = true
   }
 }
 
@@ -243,7 +254,7 @@ resource "azurerm_template_deployment" "forgettable" {
 }
 DEPLOY
 
-  parameters {
+  parameters = {
     name = "${var.forgettable_name}"
     image = "quay.io/americanredcross/osm-stats-forgettable"
     app_service_plan_id = "${azurerm_app_service_plan.osm-stats.id}"
@@ -345,7 +356,7 @@ resource "azurerm_template_deployment" "osm-stats-api" {
 }
 DEPLOY
 
-  parameters {
+  parameters = {
     name = "${var.api_name}"
     image = "quay.io/americanredcross/osm-stats-api"
     app_service_plan_id = "${azurerm_app_service_plan.osm-stats.id}"
