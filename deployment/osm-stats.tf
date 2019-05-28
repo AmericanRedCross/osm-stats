@@ -1,5 +1,10 @@
 provider "azurerm" {
   skip_credentials_validation = true
+  version = "~> 1.29"
+}
+
+provider "random" {
+  version = "~> 2.1"
 }
 
 variable "api_name" {
