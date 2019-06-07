@@ -96,8 +96,8 @@ resource "azurerm_container_group" "osm-stats" {
   container {
     name = "housekeeping"
     image = "quay.io/americanredcross/osm-stats-workers"
-    cpu = "0.5"
-    memory = "0.5"
+    cpu = "1"
+    memory = "2"
     ports {
       port = 8081 # unbound but required
     }
