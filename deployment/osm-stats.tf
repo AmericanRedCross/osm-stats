@@ -89,7 +89,7 @@ resource "azurerm_container_group" "osm-stats" {
 
     environment_variables = {
       DATABASE_URL = "postgresql://${var.db_user}%40${var.db_server_name}:${random_string.db_password.result}@${azurerm_postgresql_server.osm-stats.fqdn}/${var.db_name}"
-      OVERPASS_URL="http://export.hotosm.org:6080"
+      OVERPASS_URL="http://overpass.hotosm.org/"
     }
   }
 
