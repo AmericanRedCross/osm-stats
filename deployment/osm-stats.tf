@@ -79,7 +79,7 @@ resource "azurerm_container_group" "osm-stats" {
 
   container {
     name = "osm-changes"
-    image = "quay.io/americanredcross/osm-stats-workers"
+    image = "docker.io/hotosm/osm-stats-workers"
     cpu = "2"
     memory = "8"
 
@@ -89,13 +89,13 @@ resource "azurerm_container_group" "osm-stats" {
 
     environment_variables = {
       DATABASE_URL = "postgresql://${var.db_user}%40${var.db_server_name}:${random_string.db_password.result}@${azurerm_postgresql_server.osm-stats.fqdn}/${var.db_name}"
-      OVERPASS_URL="http://overpass.hotosm.org/"
+      OVERPASS_URL="http://40.83.176.157"
     }
   }
 
   container {
     name = "housekeeping"
-    image = "quay.io/americanredcross/osm-stats-workers"
+    image = "docker.io/hotosm/osm-stats-workers"
     cpu = "1"
     memory = "2"
     ports {
@@ -357,7 +357,7 @@ DEPLOY
 
   parameters = {
     name = "${var.api_name}"
-    image = "quay.io/americanredcross/osm-stats-api"
+    image = "quay.io/americanredcross/osm-stats-api:v0.21.0"
     app_service_plan_id = "${azurerm_app_service_plan.osm-stats.id}"
     database_url = "postgresql://${var.db_user}%40${var.db_server_name}:${random_string.db_password.result}@${azurerm_postgresql_server.osm-stats.fqdn}/${var.db_name}"
     forgettable_url = "http://${var.forgettable_name}.azurewebsites.net"
