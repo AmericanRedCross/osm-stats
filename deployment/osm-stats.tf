@@ -8,52 +8,52 @@ provider "random" {
 }
 
 variable "api_name" {
-  type = "string"
+  type = string
   default = "osm-stats-api"
 }
 
 variable "app_service_plan_name" {
-  type = "string"
+  type = string
   default = "osm-stats"
 }
 
 variable "container_group_name" {
-  type = "string"
+  type = string
   default = "osm-stats"
 }
 
 variable "db_server_name" {
-  type = "string"
+  type = string
   default = "osm-stats"
 }
 
 variable "db_name" {
-  type = "string"
+  type = string
   default = "mm"
 }
 
 variable "db_user" {
-  type = "string"
+  type = string
   default = "mm"
 }
 
 variable "forgettable_name" {
-  type = "string"
+  type = string
   default = "osm-stats-forgettable"
 }
 
 variable "redis_server_name" {
-  type = "string"
+  type = string
   default = "osm-stats"
 }
 
 variable "resource_group_name" {
-  type = "string"
+  type = string
   default = "osm-stats"
 }
 
 variable "stream_path" {
-  type = "string"
+  type = string
   default = "osm-stats"
 }
 
@@ -79,8 +79,8 @@ resource "azurerm_container_group" "osm-stats" {
 
   container {
     name = "osm-changes"
-    image = "quay.io/americanredcross/osm-stats-workers"
-    cpu = "2"
+    image = "docker.io/hotosm/osm-stats-workers:inc-timeout"
+    cpu = "3"
     memory = "8"
 
     ports {
@@ -89,13 +89,13 @@ resource "azurerm_container_group" "osm-stats" {
 
     environment_variables = {
       DATABASE_URL = "postgresql://${var.db_user}%40${var.db_server_name}:${random_string.db_password.result}@${azurerm_postgresql_server.osm-stats.fqdn}/${var.db_name}"
-      OVERPASS_URL="http://export.hotosm.org:6080"
+      OVERPASS_URL="https://overpass-mm.hotosm.org"
     }
   }
 
   container {
     name = "housekeeping"
-    image = "quay.io/americanredcross/osm-stats-workers"
+    image = "docker.io/hotosm/osm-stats-workers:inc-timeout"
     cpu = "1"
     memory = "2"
     ports {
@@ -357,7 +357,7 @@ DEPLOY
 
   parameters = {
     name = "${var.api_name}"
-    image = "quay.io/americanredcross/osm-stats-api"
+    image = "quay.io/americanredcross/osm-stats-api:v0.22.0"
     app_service_plan_id = "${azurerm_app_service_plan.osm-stats.id}"
     database_url = "postgresql://${var.db_user}%40${var.db_server_name}:${random_string.db_password.result}@${azurerm_postgresql_server.osm-stats.fqdn}/${var.db_name}"
     forgettable_url = "http://${var.forgettable_name}.azurewebsites.net"
