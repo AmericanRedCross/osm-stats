@@ -10,7 +10,6 @@ resource "azurerm_resource_group" "osm-stats" {
 }
 
 resource "azurerm_container_group" "osm-stats" {
-  # this is created within a container group rather than App Service because it
   name                = var.container_group_name
   location            = azurerm_resource_group.osm-stats.location
   resource_group_name = azurerm_resource_group.osm-stats.name
