@@ -47,3 +47,17 @@ variable "stream_path" {
   type    = string
   default = "osm-stats"
 }
+
+variable "docker_image" {
+  type = map(string)
+  default = {
+    housekeeping  = "docker.io/hotosm/osm-stats-workers:inc-timeout"
+    osm_changes   = "docker.io/hotosm/osm-stats-workers:inc-timeout"
+    osm_stats_api = "quay.io/americanredcross/osm-stats-api:v0.22.0"
+  }
+}
+
+variable "overpass_url" {
+  type    = string
+  default = "https://overpass-mm.hotosm.org"
+}

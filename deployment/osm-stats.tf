@@ -20,8 +20,8 @@ resource "azurerm_container_group" "osm-stats" {
 
   container {
     name   = "osm-changes"
-    image  = "quay.io/americanredcross/osm-stats-workers"
-    cpu    = "2"
+    image  = lookup(var.docker_image, "osm-changes")
+    cpu    = "3"
     memory = "8"
 
     ports {
@@ -30,22 +30,13 @@ resource "azurerm_container_group" "osm-stats" {
 
     environment_variables = {
       DATABASE_URL = "postgresql://${var.db_user}%40${var.db_server_name}:${random_string.db_password.result}@${azurerm_postgresql_server.osm-stats.fqdn}/${var.db_name}"
-      /**
-      DATABASE_URL = format(
-        "postgresql://%s%%40%s:%s@%s/%s",
-        var.db_user,
-        var.db_server_name,
-        random_string.db_password.result,
-        azurerm_postgresql_server.osm-stats.fqdn,
-        var.db_name
-      ) **/
-      OVERPASS_URL = "http://export.hotosm.org:6080"
+      OVERPASS_URL = var.overpass_url
     }
   }
 
   container {
     name   = "housekeeping"
-    image  = "quay.io/americanredcross/osm-stats-workers"
+    image  = lookup(var.docker_image, "housekeeping")
     cpu    = "1"
     memory = "2"
     ports {
@@ -80,7 +71,7 @@ resource "azurerm_postgresql_server" "osm-stats" {
   location            = azurerm_resource_group.osm-stats.location
   resource_group_name = azurerm_resource_group.osm-stats.name
 
-  version = "9.6"
+  version = "10"
 
   administrator_login          = var.db_user
   administrator_login_password = random_string.db_password.result // TODO: Store in Secrets Manager?
@@ -134,7 +125,7 @@ resource "azurerm_linux_web_app" "osm-stats-forgettable" {
     always_on = true
 
     application_stack {
-      docker_image     = "quay.io/americanredcross/osm-stats-api"
+      docker_image     = lookup(var.docker_image, "osm_stats_worker")
       docker_image_tag = "latest"
     }
   }
@@ -162,7 +153,7 @@ resource "azurerm_linux_web_app" "osm-stats-api" {
     always_on = true
 
     application_stack {
-      docker_image     = "quay.io/americanredcross/osm-stats-api"
+      docker_image     = lookup(var.docker_image, "osm_stats_api")
       docker_image_tag = "latest"
     }
   }
