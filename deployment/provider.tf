@@ -1,4 +1,14 @@
 terraform {
+  required_version = ">= 1.3.0"
+
+  backend "remote" {
+    organization = "hotosm"
+
+    workspaces {
+      name = "osm-stats"
+    }
+  }
+
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
@@ -27,4 +37,3 @@ provider "azurerm" {
   version = "~> 1.29"
 }
 ***/
-
