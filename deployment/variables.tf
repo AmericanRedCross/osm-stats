@@ -1,3 +1,23 @@
+variable "azure_subscription_id" {
+  type    = string
+  default = ""
+}
+
+variable "azure_client_id" {
+  type    = string
+  default = ""
+}
+
+variable "azure_client_secret" {
+  type    = string
+  default = ""
+}
+
+variable "azure_tenant_id" {
+  type    = string
+  default = ""
+}
+
 variable "api_name" {
   type    = string
   default = "osm-stats-api"
