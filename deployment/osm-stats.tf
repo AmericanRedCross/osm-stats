@@ -113,7 +113,7 @@ resource "azurerm_service_plan" "osm-stats" {
 }
 
 resource "azurerm_linux_web_app" "osm-stats-forgettable" {
-  name                = var.service_plan_name
+  name                = "${var.service_plan_name}-forgettable"
   resource_group_name = azurerm_resource_group.osm-stats.name
   location            = azurerm_service_plan.osm-stats.location
   service_plan_id     = azurerm_service_plan.osm-stats.id
@@ -141,7 +141,7 @@ resource "azurerm_linux_web_app" "osm-stats-forgettable" {
 }
 
 resource "azurerm_linux_web_app" "osm-stats-api" {
-  name                = var.service_plan_name
+  name                = "${var.service_plan_name}-api"
   resource_group_name = azurerm_resource_group.osm-stats.name
   location            = azurerm_service_plan.osm-stats.location
   service_plan_id     = azurerm_service_plan.osm-stats.id
