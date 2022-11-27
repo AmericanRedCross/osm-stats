@@ -79,7 +79,7 @@ resource "azurerm_postgresql_server" "osm-stats" {
   backup_retention_days        = 35
   geo_redundant_backup_enabled = true
 
-  public_network_access_enabled    = false
+  public_network_access_enabled    = true                     // If false, then firewall rule can't be created
   ssl_enforcement_enabled          = false                    // TODO: Fix
   ssl_minimal_tls_version_enforced = "TLSEnforcementDisabled" // "TLS1_2"
 
