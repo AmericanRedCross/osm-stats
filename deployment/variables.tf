@@ -71,9 +71,10 @@ variable "stream_path" {
 variable "docker_image" {
   type = map(string)
   default = {
-    housekeeping  = "docker.io/hotosm/osm-stats-workers:inc-timeout"
-    osm_changes   = "docker.io/hotosm/osm-stats-workers:inc-timeout"
-    osm_stats_api = "quay.io/americanredcross/osm-stats-api:v0.22.0"
+    housekeeping     = "docker.io/hotosm/osm-stats-workers:inc-timeout"
+    osm-changes      = "docker.io/hotosm/osm-stats-workers:inc-timeout"
+    osm-stats-api    = "quay.io/americanredcross/osm-stats-api:v0.22.0"
+    osm-stats-worker = "quay.io/americanredcross/osm-stats-api:v0.22.0"
   }
 }
 

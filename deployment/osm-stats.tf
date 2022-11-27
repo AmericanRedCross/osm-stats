@@ -124,7 +124,7 @@ resource "azurerm_linux_web_app" "osm-stats-forgettable" {
     always_on = true
 
     application_stack {
-      docker_image     = lookup(var.docker_image, "osm_stats_worker")
+      docker_image     = lookup(var.docker_image, "osm-stats-worker")
       docker_image_tag = "latest"
     }
   }
@@ -152,7 +152,7 @@ resource "azurerm_linux_web_app" "osm-stats-api" {
     always_on = true
 
     application_stack {
-      docker_image     = lookup(var.docker_image, "osm_stats_api")
+      docker_image     = lookup(var.docker_image, "osm-stats-api")
       docker_image_tag = "latest"
     }
   }
